@@ -1,0 +1,5 @@
+/var/lib/debdeploy/
+/usr/lib/python2.7/dist-packages/salt/returners/
+/usr/lib/python2.7/dist-packages/salt/modules/
+/usr/lib/debdeploy/
+/var/log/debdeploy/

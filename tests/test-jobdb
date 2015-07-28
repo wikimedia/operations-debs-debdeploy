@@ -1,0 +1,70 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sqlite3, os, unittest
+from debdeploylog import *
+
+class TestDeployJob(unittest.TestCase):
+
+    testdb = os.path.join("testrun/", "tests-jobs.sqlite")
+    if os.path.exists(testdb):
+        os.remove(testdb)
+
+    joblogdb = DebDeployJobLog(testdb)
+
+    yaml1 = '''
+source: elinks
+comment: CVE-2015-0123
+fixes:
+        jessie: 0.12~pre6-7
+        trusty: 2.0-1
+        precise:
+        '''
+
+    yamlfile = os.path.join("job1.yaml")
+    if not os.path.exists(yamlfile):
+        f = open(yamlfile, "w")
+        f.write(yaml1)
+        f.close()
+        
+    def testJobs(self):
+
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "hostclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist("fake.yaml", "hostclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "horstclass:testsystem"), False)
+
+        self.joblogdb.add_job(self.yamlfile, "hostclass:testsystem", "20150519122347247890")
+
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "hostclass:testsystem"), True)
+        self.assertEqual(self.joblogdb.does_job_exist("fake.yaml", "hostclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "horstclass:testsystem"), False)
+
+        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "hostclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.has_been_rolled_back("fake.yaml", "hostclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "horstclass:testsystem"), False)
+
+        self.assertEqual(self.joblogdb.get_jobid(self.yamlfile, "hostclass:testsystem"), "20150519122347247890")
+        self.assertEqual(self.joblogdb.get_jobid("fake.yaml", "hostclass:testsystem"), None)
+        self.assertEqual(self.joblogdb.get_jobid(self.yamlfile, "horstclass:testsystem"), None)
+
+        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "hostclass:testsystem"), "")
+        self.assertEqual(self.joblogdb.get_rollbackid("fake.yaml", "hostclass:testsystem"), None)
+        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "horstclass:testsystem"), None)
+
+        self.assertRaises(ValueError, self.joblogdb.mark_as_rolled_back, "10150519122347247890", "20150519122347248000")
+        self.joblogdb.mark_as_rolled_back("20150519122347247890", "20150519122347248000")
+
+        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "hostclass:testsystem"), True)
+        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "hostclass:testsystem"), "20150519122347248000")
+        
+if __name__ == '__main__':
+    unittest.main()
+
+# Local variables:
+# mode: python
+# End:
+
+
+
+
+

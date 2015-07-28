@@ -1,0 +1,9 @@
+source: elinks
+comment: CVE-2015-0123
+update_type: tool
+fixes:
+        jessie: 0.12~pre6-7
+        trusty: 2.0-1
+        precise:
+
+        

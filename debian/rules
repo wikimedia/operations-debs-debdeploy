@@ -1,0 +1,6 @@
+#!/usr/bin/make -f
+
+# This should really use dh_python, but we still need to support precise,
+# so install everything manually
+%:
+	dh $@

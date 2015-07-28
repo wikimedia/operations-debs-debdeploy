@@ -1,0 +1,9 @@
+source: openssl
+comment: need current crypto
+update_type: library
+fixes:
+        jessie: 1.0.2d-1~wmf1
+        trusty: 
+        precise:
+
+        

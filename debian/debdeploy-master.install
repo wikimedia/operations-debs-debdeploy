@@ -1,0 +1,4 @@
+master/debdeploy_joblog.py /usr/lib/python2.7/dist-packages/
+master/debdeploy_updatespec.py /usr/lib/python2.7/dist-packages/
+master/debdeploy_conf.py /usr/lib/python2.7/dist-packages/
+master/debdeploy /usr/sbin

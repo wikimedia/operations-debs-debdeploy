@@ -1,0 +1,120 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sqlite3, os, unittest
+
+#from debdeploy import *
+from debdeploy_pkgdb import *
+
+class TestDeployPkgdb(unittest.TestCase):
+
+    pkg = DebDeployPkgDB
+
+    def reinit_db(self, name):
+        if os.path.exists(name):
+            os.remove(name)
+        self.pkg = DebDeployPkgDB(name)
+        
+    def testHosts(self):
+        self.reinit_db("tests-host.sqlite")
+        self.assertEqual(self.pkg.get_host_id("host1"), 0)
+        self.assertEqual(self.pkg.add_host("host1"), 1)
+        self.assertEqual(self.pkg.get_host_id("host1"), 1)
+        self.assertEqual(self.pkg.add_host("host1"), None)
+        self.assertEqual(self.pkg.does_host_exist("host2"), False)
+        self.assertEqual(self.pkg.add_host("host2"), 2)
+        self.assertEqual(self.pkg.does_host_exist("host2"), True)
+        self.pkg.remove_host("host2")
+        self.assertEqual(self.pkg.does_host_exist("host2"), False)
+
+    def testPackages(self):
+        self.reinit_db("tests-pkgs.sqlite")
+        self.assertEqual(self.pkg.add_packages(["elinks"]), set(["elinks"]))
+        self.assertEqual(self.pkg.get_package_id("elinks"), 1)
+        self.assertEqual(self.pkg.get_packages(), set(["elinks"]))
+        self.assertEqual(self.pkg.get_package_id("notexisting"), 0)
+        self.assertEqual(self.pkg.does_package_exist("elinks-data"), False)
+        self.assertEqual(self.pkg.add_packages(["elinks-data", "elinks"]), set(["elinks-data"]))
+        self.assertEqual(self.pkg.does_package_exist("elinks-data"), True)
+        self.assertEqual(self.pkg.get_packages(), set(["elinks", "elinks-data"]))
+        self.pkg.remove_package("elinks-data")
+        self.assertEqual(self.pkg.does_package_exist("elinks-data"), False)
+
+    def testPackageVersions(self):
+        self.reinit_db("tests-pkgvers.sqlite")
+        self.assertEqual(self.pkg.add_packages(["elinks"]), set(["elinks"]))
+        self.assertEqual(self.pkg.does_packageversion_exist("elinks", "0.11-4"), False)
+        pid = self.pkg.get_package_id("elinks")
+        self.pkg.add_packageversions([(pid, "0.11-4",)])
+        pvid = self.pkg.get_packageversion_id(pid, "0.11-4")
+        self.assertEqual(pvid, 1)
+        self.assertEqual(self.pkg.does_packageversion_exist("elinks", "0.11-4"), True)
+        self.assertEqual(self.pkg.get_packageversion_id(pid, "0.11-4"), 1)
+        self.assertEqual(self.pkg.get_packageversion_id(pid, "0.11-4-invalid"), 0)
+        self.pkg.add_packageversions([(pid, "0.11-4",)])
+        self.pkg.add_packageversions([(pid, "0.11-5",)])
+        self.pkg.remove_packageversion("elinks", "0.11-4")
+        self.assertEqual(self.pkg.does_packageversion_exist("elinks", "0.11-4"), False)
+        self.assertEqual(self.pkg.does_packageversion_exist("elinks", "0.11-5"), True)
+
+    def testPackageHosts(self):
+        self.reinit_db("tests-pkginsts.sqlite")
+        self.assertEqual(self.pkg.does_host_exist("host1"), False)
+#        inst = []
+#        inst.append(("elinks", "0.11-4",))
+#        self.assertRaises(ValueError, self.pkg.add_installed_packages, "host1", inst)
+#        self.assertEqual(self.pkg.does_host_exist("host1"), False)
+
+        inst = {}
+        inst["elinks"] = "0.11-4"
+        inst["elinks-data"] = "0.11-4"
+        inst["wget"] = "1.5-1"
+        self.pkg.add_installed_packages("host1", inst)
+        self.assertEqual(self.pkg.get_installed_version("elinks", "host1"), "0.11-4")
+        self.assertEqual(self.pkg.does_host_exist("host1"), True)
+
+        self.assertEqual(self.pkg.get_outdated_packages("elinks", "0.11-3"), [])
+        self.assertEqual(self.pkg.get_outdated_packages("elinks", "0.11-4"), [])
+        self.assertEqual(self.pkg.get_outdated_packages("elinks", "0.11-5"), ["host1"])
+        self.assertEqual(self.pkg.get_outdated_packages("elinks", "1:0.11-4"), ["host1"])
+   
+        self.pkg.add_host("host2")
+        self.pkg.add_host("host3")
+        inst = {}
+        inst["elinks"] = "0.11-4"
+        self.assertEqual(self.pkg.get_servers_with_package("elinks"), ["host1"])
+        self.pkg.add_installed_packages("host2", inst)
+
+        self.assertEqual(self.pkg.get_outdated_packages("elinks", "0.11-4"), [])
+        self.assertEqual(self.pkg.get_outdated_packages("elinks", "0.11-5"), ["host1", "host2"])
+
+        self.assertEqual(self.pkg.get_servers_with_package("elinks"), ["host1", "host2"])
+        self.assertEqual(self.pkg.get_servers_with_package("elinks-non-exist"), [])
+        self.assertNotEqual(self.pkg.get_last_modification("elinks", "host1"), None)
+        self.assertEqual(self.pkg.get_last_modification("elinks", "host3"), None)
+
+        # If a package is added for which an entry already exists, the old version is pruned
+        inst = {}
+        inst["elinks"] = "0.11-6"
+        self.pkg.add_installed_packages("host1", inst)
+        self.assertEqual(self.pkg.get_installed_version("elinks", "host1"), "0.11-6")
+
+        remove = {}
+        remove["elinks"] = "0.11-6"
+        self.pkg.remove_installed_packages("host1", remove)
+        self.assertEqual(self.pkg.get_installed_version("elinks", "host1"), None)
+      
+if __name__ == '__main__':
+    unittest.main()
+         
+# Local variables:
+# mode: python
+# End:
+
+
+
+
+
+
+
+

@@ -1,0 +1,24 @@
+Source: debdeploy
+Section: admin
+Priority: optional
+Maintainer: Moritz Muehlenhoff <moritz@wikimedia.org>
+Build-Depends: debhelper
+Standards-Version: 3.9.6
+
+Package: debdeploy-master
+Architecture: all
+Depends: salt-master, sqlite3 (>= 3.6.19), python-yaml, debdeploy-common, ${shlibs:Depends}, ${misc:Depends}
+Description: central package management (master)
+ central package management (package master)
+
+Package: debdeploy-minion
+Architecture: all
+Depends: salt-minion, lsof, python-debian, debdeploy-common, ${misc:Depends}, ${misc:Depends}
+Description: central package management (minion)
+ central package management (minions)
+
+Package: debdeploy-common
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: central package management (master)
+ central package management (common files)
