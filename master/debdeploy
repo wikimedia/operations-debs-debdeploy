@@ -32,7 +32,7 @@ def display_status(rollback_mode=False):
     install_errors = []
     restart_cnt = {}
 
-    for i in conf.server_groups[opt.serverlist]: 
+    for i in conf.server_groups[opt.serverlist]:
 
         if rollback_mode:
             if not joblogdb.does_job_exist(opt.updatefile, i):
@@ -47,7 +47,7 @@ def display_status(rollback_mode=False):
                 print opt.updatefile, "hasn't been deployed yet for this server group (identified by grain", i, ")"
                 sys.exit(0)
 
-        if rollback_mode:        
+        if rollback_mode:
             jid = joblogdb.get_rollbackid(opt.updatefile, i)
         else:
             jid = joblogdb.get_jobid(opt.updatefile, i)
@@ -65,13 +65,13 @@ def display_status(rollback_mode=False):
             sys.exit(0)
 
         amount_of_hosts += len(res.keys())
-            
-        for host in res.keys():
+
+        for host in res:
             added = res[host]['return']['additions']
             removed = res[host]['return']['removals']
             updated = res[host]['return']['updated']
             restart = res[host]['return']['restart']
-            
+
             print host + ":"
             if len(added) > 0:
                 print "  Added packages:", host['return']['additions']
@@ -80,7 +80,7 @@ def display_status(rollback_mode=False):
                         add_cnt[added_pkg] = 1
                     else:
                         add_cnt[added_pkg] += 1
-                        
+
             elif len(removed) > 0:
                 print "  Removed packages:", host['return']['removals']
                 for removed_pkg in host['return']['removals']:
@@ -91,7 +91,7 @@ def display_status(rollback_mode=False):
 
             elif len(updated.keys()) > 0:
                 print "  Updated packages:"
-                for k in updated.keys():
+                for k in updated:
                     print "    " + k + ": " + updated[k][0] + " -> " + updated[k][1]
 
                     updated_idx = k + ": " + updated[k][0] + " -> " + updated[k][1]
@@ -111,7 +111,7 @@ def display_status(rollback_mode=False):
                             restart_cnt[process] = 1
                         else:
                             restart_cnt[process] += 1
-                        
+
             # Detect installation errors and collect them to display an error list
             # across all Salt grains
             # apt doesn't provide more fine-grained error reporting other than
@@ -122,12 +122,12 @@ def display_status(rollback_mode=False):
                     install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
                 else:
                     install_errors.append(host + ": Unknown installation error")
-                
+
             if opt.verbose:
                 print
                 indented = ['  ' + l for l in res[host]['return']['aptlog'].splitlines()]
                 print "\n".join(indented)
-                        
+
     print 
     print 
     if rollback_mode:
@@ -142,14 +142,14 @@ def display_status(rollback_mode=False):
         print "No packages were added"
     else:
         print "Added packages:"
-        for pkg in add_cnt.keys():
+        for pkg in add_cnt:
             print pkg, "on", add_cnt[pkg], "hosts"
 
     if len(remove_cnt.keys()) == 0:
         print "No packages were removed"
     else:
         print "Removed packages:"
-        for pkg in remove_cnt.keys():
+        for pkg in remove_cnt:
             print pkg, "on", remove_cnt[pkg], "hosts"
 
     if len(update_cnt.keys()) == 0:
@@ -167,8 +167,8 @@ def display_status(rollback_mode=False):
         print "Restarts needed:"
         for process in sorted(restart_cnt.keys()):
             print process, "on", restart_cnt[process], "hosts"
-            
-    print 
+
+    print
     print "Error summary:"
 
     if len(install_errors) == 0:
@@ -186,8 +186,8 @@ def deploy_update(source, update_type, grains, update_file):
     grains      : Apply the update on this list of Salt grains (list of strings)
     update_file : Filename of update specification (string)
     '''
-    
-    print "Rolling out", source, ":", 
+
+    print "Rolling out", source, ":",
     if update_type == "tool":
         print "Non-daemon update, no service restart needed"
     elif update_type == "daemon-direct":
@@ -208,8 +208,8 @@ def deploy_update(source, update_type, grains, update_file):
         sys.exit(1)
     elif update_type == "library":
         print "Library update, several services might need to be restarted"
-    
-    for i in grains: 
+
+    for i in grains:
         if joblogdb.has_been_rolled_back(update_file, i):
             print update_file, "was already deployed and rolled back for this server group (identified by grain", i, "), if you want to redeploy you need to assign a different name"
             sys.exit(1)
@@ -223,7 +223,7 @@ def deploy_update(source, update_type, grains, update_file):
         jid = client.cmd_async(i, 'debdeploy-minion.deploy', [source, update_type, update.fixes], expr_form='grain')
         logging.info("Initiated rollout for " + source + " on grain " + i + "(salt job id: " + str(jid) + ")")
         joblogdb.add_job(update_file, i, jid)
-            
+
 
 def restart(grains, processes):
     '''
@@ -241,15 +241,15 @@ def restart(grains, processes):
     print "Restarting services. Use --verbose to also display non-failing restarts."
     for i in grains:
         r = client.cmd(i, 'debdeploy-minion.restart_service', [processes], expr_form='grain')
-        for host in r.keys():
+        for host in r:
             c += 1
             if opt.verbose:
                 print host + ":"
-            for process in r[host].keys():
+            for process in r[host]:
                 c_success.setdefault(process, 0)
                 c_failed.setdefault(process, 0)
                 c_stopped.setdefault(process, 0)
-                            
+
                 if r[host][process] == 0:
                     c_success[process] += 1
                     if opt.verbose:
@@ -270,14 +270,14 @@ def restart(grains, processes):
     if opt.verbose:
         print
     print "Restart summary:"
-    for proc in c_success.keys():
+    for proc in c_success:
         print proc, "successfully restarted on", c_success[proc], "out of", c, "hosts."
 
-    for proc in c_failed.keys():
+    for proc in c_failed:
         if c_failed[proc] > 0:
             print proc, "failed to restart on", c_failed[proc], "out of", c, "hosts."
 
-    for proc in c_stopped.keys():
+    for proc in c_stopped:
         if c_stopped[proc] > 0:
             print proc, "wasn't running on on", c_stopped[proc], "out of", c, "hosts."
 
@@ -289,8 +289,8 @@ def rollback(grains, update_file):
     grains      : Rollback an update on this list of Salt grains (list of strings)
     update_file : Filename of update specification (string)
     '''
-    
-    for servergroup in grains: 
+
+    for servergroup in grains:
         if not joblogdb.does_job_exist(update_file, servergroup):
             print "No software deployment for " + update_file + " exists."
             sys.exit(1)
@@ -301,14 +301,14 @@ def rollback(grains, update_file):
             else:
                 jid = joblogdb.get_jobid(update_file, servergroup)
             print "Initiated rollback for JID", jid
-                
+
         rid = client.cmd_async(servergroup, 'debdeploy-minion.rollback', [jid], expr_form='grain')
 
         joblogdb.mark_as_rolled_back(jid, rid)
 
 
-            
-            
+
+
 client = salt.client.LocalClient()
 conf = DebDeployConfig("/etc/debdeploy.conf")
 joblogdb = DebDeployJobLog("/var/lib/debdeploy/jobdb.sqlite")
@@ -341,7 +341,7 @@ if len (args) == 0 or len (args) > 1:
     sys.exit(1)
 
 command = args[0]
-    
+
 if command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart"):
     if not opt.serverlist:
         op.error("You need to provide a server list (-s)")
@@ -361,31 +361,30 @@ if command in ("pkgdb-source"):
         op.error("You need to provide a hostname (-h)")
 
 
-        
 if command == "deploy":
     update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
     deploy_update(update.source, update.update_type, conf.server_groups[opt.serverlist], opt.updatefile)
 
 elif command == "restart":
     restart(conf.server_groups[opt.serverlist], opt.program)
-        
+
 elif command == "status-deploy":
-    display_status()    
+    display_status()
 
 elif command == "status-rollback":
-    display_status(rollback_mode=True)    
+    display_status(rollback_mode=True)
 
 elif command == "rollback":
     rollback(conf.server_groups[opt.serverlist], opt.updatefile)
-              
+
 # elif command == "pkgdb-source":
 #     jid = client.cmd(opt.host, 'debdeploy.return_pkgs')
-    
+
 #     if opt.serverlist == "all":
 #         ret = client.cmd("*", 'debdeploy-minion.deploy', [update.source, update.fixes])
 #     else:
 #     # there can be multiple grains specified in a server list
-#         for i in conf.server_groups[opt.serverlist]: 
+#         for i in conf.server_groups[opt.serverlist]:
 #             if joblogdb.has_been_rolled_back(opt.updatefile, i):
 #                 print opt.updatefile, "was already deployed and rolled back for this server group (identified by grain", i, "), if you want to redeploy you need to assign a different name"
 #                 sys.exit(1)
@@ -395,22 +394,9 @@ elif command == "rollback":
 #                 sys.exit(1)
 #             jid = client.cmd_async(i, 'debdeploy-minion.deploy', [update.source, update.fixes], expr_form='grain')
 #             joblogdb.add_job(opt.updatefile, i, jid)
-        
+
 sys.exit(0)
 
 # Local variables:
 # mode: python
 # End:
-
-
-
-
-
-
-
-
-
-
-
-
-

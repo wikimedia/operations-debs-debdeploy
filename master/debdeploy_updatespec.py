@@ -9,13 +9,13 @@ class DebDeployUpdateSpec(object):
     Each update is described in a YAML file, see docs/readme.txt for the data
     format.
     '''
-    
+
     source = ""
     comment = ""
     update_type = ""
     fixes = {}
     legit_type = ['tool', 'daemon-direct', 'daemon-disrupt', 'daemon-cluster', 'reboot', 'reboot-cluster', 'library']
-    
+
     def __init__(self, updatespec, supported_distros):
         '''
         Parse an update spec file.
@@ -23,30 +23,30 @@ class DebDeployUpdateSpec(object):
         updatespec        : Filename of the update spec file (string)
         supported_distros : These are the distro codenames for which a fixed version can be provided (list of strings)
         '''
-        
+
         try:
-            stream = open(updatespec, "r")
-        except:
+            with open(updatespec, "r") as stream:
+                updatefile = yaml.load(stream)
+
+        except IOError:
             print "Error: Could not open", updatespec
             sys.exit(1)
 
-        updatefile = yaml.load(stream)
-            
         if not updatefile.has_key("source"):
             print "Invalid YAML file, you need to specify the source package using the 'source' stanza, see the annotated example file for details"
             sys.exit(1)
         else:
             self.source = updatefile["source"]
-            
+
         if not updatefile.has_key("update_type"):
             print "Invalid YAML file, you need to specify the type of update using the 'update_type' stanza, see the annotated example file for details"
             sys.exit(1)
         else:
-            if updatefile["update_type"] not in legit_type:
+            if updatefile["update_type"] not in self.legit_type:
                 print "Invalid YAML file, invalid 'update_type'"
                 sys.exit(1)
             self.update_type = updatefile["update_type"]
-            
+
         if updatefile.has_key("comment"):
             self.comment = updatefile["comment"]
 
@@ -54,7 +54,7 @@ class DebDeployUpdateSpec(object):
             print "Invalid YAML file, you need to specify at least one fixed version using the 'fixes' stanza, see the annotated example file for details"
             sys.exit(1)
         else:
-            for i in updatefile["fixes"].keys():
+            for i in updatefile["fixes"]:
                 if supported_distros.count(i) >= 1:
                     self.fixes[i] = updatefile["fixes"].get(i)
                 else:

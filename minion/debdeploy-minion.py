@@ -39,11 +39,11 @@ def list_pkgs():
     It is mostly used by other debdeploy Salt modules to determine whether packages
     were updated, installed or removed.
     '''
-    
+
     cmd = 'dpkg-query --showformat=\'${Status} ${Package} ' \
           '${Version} ${Architecture}\n\' -W'
     pkgs = {}
-    
+
     out = __salt__['cmd.run_stdout'](cmd, output_loglevel='debug')
     for line in out.splitlines():
         cols = line.split()
@@ -112,7 +112,7 @@ def restart_service(programs):
                         results[program] = 1
                 except OSError:
                     results[program] = 1
-            break    
+            break
 
 
         try:
@@ -123,7 +123,7 @@ def restart_service(programs):
                 break
 
         service = "undefined"
-    
+
         if os.path.exists('/bin/systemd'): # systemd
             cgroup = os.path.join("/proc", pid, "cgroup")
             if os.path.exists(cgroup):
@@ -132,13 +132,13 @@ def restart_service(programs):
                     if i.startswith("1:name"):
                         service = i.split("/")[-1].strip()
                 f.close()
-            
+
         elif os.path.exists('/sbin/initctl'): # upstart
             jobs = subprocess.check_output(["/sbin/initctl", "list"])
             for x in jobs.splitlines():
                 if x.endswith(str(pid)):
                     service = x.split()[0]
-                
+
         # no systemd or upstart job is present, let's check sysvinit
         if service == "undefined":
             # try a heuristic for sysvinit, in many cases the name of the daemon equals the init script name
@@ -150,7 +150,7 @@ def restart_service(programs):
 
             if os.path.exists(os.path.join('/etc/init.d/', program_basename)):
                 service = program_basename
-           
+
         logging.info("Restarting " + service + " for " + program)
         if __salt__['service.restart'](service):
             results[program] = 0
@@ -172,7 +172,7 @@ def install_pkgs(binary_packages, downgrade = False):
 
     except MinionError as exc:
         raise CommandExecutionError(exc)
-    
+
     if pkg_params is None or len(pkg_params) == 0:
         return {}
     if pkg_type == 'repository':
@@ -206,7 +206,7 @@ def deploy(source, update_type, versions, **kwargs):
 
     pending_restarts_pre = set()
     pending_restarts_post = set()
-    
+
     installed_distro = grains['oscodename']
     if not versions.has_key(installed_distro):
         logging.info("Update doesn't apply to the installed distribution (" + installed_distro + ")")
@@ -222,7 +222,7 @@ def deploy(source, update_type, versions, **kwargs):
             installed_binary_packages.append({pkg['Package'] : versions[installed_distro]})
         elif pkg.has_key('Package') and pkg['Package'] == source:
             installed_binary_packages.append({pkg['Package'] : versions[installed_distro]})
-            
+
     if len(installed_binary_packages) == 0:
         logging.info("No binary packages installed for source package " + source)
         return {}
@@ -230,7 +230,7 @@ def deploy(source, update_type, versions, **kwargs):
     if update_type == "library":
         pending_restarts_pre = Checkrestart().get_programs_to_restart()
         logging.debug("Packages needing a restart prior to the update:" + str(pending_restarts_pre))
-    
+
     old = list_pkgs()
 
     logging.info("Refreshing apt package database")
@@ -251,22 +251,22 @@ def deploy(source, update_type, versions, **kwargs):
     removals = []
     updated = []
     restarts = []
-    
+
     if update_type == "library":
         restarts = list(pending_restarts_post.difference(pending_restarts_pre))
-        
+
     for i in nk.difference(ok):
         additions.append[i]
     for i in ok.difference(nk):
         removals.append[i]
     intersect = ok.intersection(nk)
     modified = {x : (old[x], new[x]) for x in intersect if old[x] != new[x]}
-    
+
     logging.info("Newly installed packages:" + str(additions))
     logging.info("Removed packages: "  + str(removals))
     logging.info("Modified packages: " + str(modified))
     logging.info("Packages needing a restart: " + str(restarts))
-   
+
     r = {}
     r["additions"] = additions
     r["removals"] = removals
@@ -280,7 +280,7 @@ def deploy(source, update_type, versions, **kwargs):
     jobfile = open("/var/lib/debdeploy/" + jobid + ".job", "w")
     pickle.dump(r, jobfile)
     jobfile.close()
-    
+
     return r
 
 
@@ -298,10 +298,10 @@ def rollback(jobid):
     aptstderr = ""
     aptstdout = ""
     aptreturn = 0
-    
+
     if len(r['updated'].keys()) > 0:
         pkgdowngrade = []
-        for i in r['updated'].keys():
+        for i in r['updated']:
             a = {}
             a[i] = r['updated'][i][0]
             pkgdowngrade.append(a)
@@ -309,7 +309,7 @@ def rollback(jobid):
         aptstderr += apt_call['stderr']
         aptstdout += apt_call['stdout']
         aptreturn += apt_call['retcode']
-        
+
     if len(r['removals']) > 0:
         install_pkgs(r['removals'])
         aptstderr += apt_call['stderr']
@@ -322,7 +322,7 @@ def rollback(jobid):
 
     if aptreturn > 100:
         aptreturn = 100
-        
+
     new = list_pkgs()
     ok = set(old.keys())
     nk = set(new.keys())
@@ -338,7 +338,7 @@ def rollback(jobid):
         removals.append[i]
     intersect = ok.intersection(nk)
     modified = {x : (old[x], new[x]) for x in intersect if old[x] != new[x]}
-    
+
     logging.info("Newly installed packages:" + str(additions))
     logging.info("Removed packages: "  + str(removals))
     logging.info(modified)
@@ -351,7 +351,7 @@ def rollback(jobid):
     r["aptlog"] = aptstdout
     r["apterrlog"] = aptstderr
     r["aptreturn"] = aptreturn
-    
+
     return r
 
 # Local variables:

@@ -194,10 +194,10 @@ class Process:
     def needsRestart(self, blacklist = None):
         for f in self.files:
             if isdeletedFile(f, blacklist):
-	    	return 1
-	for f in self.links:
-	    if f == 0:
-	    	return 1
+                return 1
+        for f in self.links:
+            if f == 0:
+                return 1
         return 0
 
 class Checkrestart:
@@ -282,7 +282,7 @@ class Checkrestart:
 
     def get_programs_to_restart(self):
         return set(self.programs.keys())
-    
+
     def lsoffilescheck(self, blacklist = None):
         processes = {}
 
@@ -324,16 +324,3 @@ class Checkrestart:
         toRestart = filter(lambda process: process.needsRestart(blacklist),
                        processes.values())
         return toRestart
-
-
-
-
-
-
-
-
-
-
-
-
-

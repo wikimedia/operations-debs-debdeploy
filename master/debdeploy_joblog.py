@@ -13,13 +13,13 @@ class DebDeployJobLog(object):
 
     def __init__(self, dbfilename):
         self.sqlite_dbfilename = dbfilename
-        
+
         if not os.path.exists(self.sqlite_dbfilename):
             conn = sqlite3.connect(self.sqlite_dbfilename)
 
             with conn:
                 conn.execute('CREATE TABLE updates (updatespec text, grain text, jobid text, rollbackid text)')
-                
+
     def add_job(self, yamlfile, grain, jid):
         '''
         This function records a software deployment in the job database.
@@ -32,7 +32,7 @@ class DebDeployJobLog(object):
         v = (str(yamlfile), str(grain), str(jid), "")
         with conn:
             conn.execute('INSERT INTO updates VALUES (?, ?, ?, ?)', v)
-        
+
     def does_job_exist(self, yamlfile, grain):
         '''
         This boolean function returns whether a software update has been deployed yet.
@@ -94,14 +94,14 @@ class DebDeployJobLog(object):
         grain = group of servers identified by a grain (string)
         '''
         conn = sqlite3.connect(self.sqlite_dbfilename)
-        
+
         with conn:
             r = conn.execute("SELECT rollbackid FROM updates WHERE updatespec=? and grain=?", (yamlfile,grain,)).fetchall()
             if not r:
                 return None
             else:
                 return r[0][0]
-    
+
     def mark_as_rolled_back(self, jid, rid):
         '''
         This function records that a rollback has been issued via Salt.
@@ -119,5 +119,3 @@ class DebDeployJobLog(object):
 # Local variables:
 # mode: python
 # End:
-
-

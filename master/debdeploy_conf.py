@@ -13,16 +13,12 @@ class DebDeployConfig(object):
     '''
     supported_distros = []
     server_groups = {}
-    
+
     def __init__(self, configfile):
         config = ConfigParser.ConfigParser()
-        try:
-            if len(config.read(configfile)) == 0:
-                print "/etc/debdeploy.conf doesn't exist, you need to create it."
-                print "See /usr/share/doc/debdeploy-master/examples/debdeploy.conf"
-                sys.exit(1)
-        except:
-            print "Failed to open", configfile
+        if len(config.read(configfile)) == 0:
+            print "/etc/debdeploy.conf doesn't exist, you need to create it."
+            print "See /usr/share/doc/debdeploy-master/examples/debdeploy.conf"
             sys.exit(1)
 
         if not config.has_section("distros") or not config.has_option("distros", "supported"):
@@ -47,14 +43,7 @@ class DebDeployConfig(object):
                     else:
                         print "Malformed server list, at least one grain must be specified for the server group", i
                         sys.exit(1)
-                
+
 # Local variables:
 # mode: python
 # End:
-
-
-
-
-
-
-
