@@ -1,3 +1,9 @@
+debdeploy (0.0.2-2) jessie-wikimedia; urgency=medium
+
+  * Bump version
+
+ -- Moritz Muehlenhoff <jmm@korn.westfalen.local>  Tue, 25 Aug 2015 11:31:13 +0200
+
 debdeploy (0.0.2-1) jessie-wikimedia; urgency=medium
 
   * Changes from initial review
