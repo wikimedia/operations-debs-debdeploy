@@ -3,7 +3,7 @@
 Module for deploying DEB packages on wide scale
 '''
 
-import logging, pickle, copy
+import logging, pickle, subprocess, os
 import logging.handlers
 #import salt.log
 
@@ -14,7 +14,7 @@ import salt.modules.aptpkg
 #from salt.modules import aptpkg
 from debian import deb822
 
-from salt.modules.debdeploy_restart import *
+from salt.modules.debdeploy_restart import Checkrestart
 from salt.exceptions import (
     CommandExecutionError, MinionError, SaltInvocationError
 )
@@ -106,11 +106,11 @@ def restart_service(programs):
                 results[program] = 3
             else:
                 try:
-                    if subprocess.call(handler) == 0:
+                    if subprocess.check_call(handler) == 0:
                         results[program] = 0
                     else:
                         results[program] = 1
-                except OSError:
+                except CalledProcessError:
                     results[program] = 1
             break
 
@@ -244,8 +244,8 @@ def deploy(source, update_type, versions, **kwargs):
         pending_restarts_post = Checkrestart().get_programs_to_restart()
         logging.debug("Packages needing a restart after to the update:" + str(pending_restarts_post))
 
-    ok = set(old.keys())
-    nk = set(new.keys())
+    old_keys = set(old.keys())
+    new_keys = set(new.keys())
 
     additions = []
     removals = []
@@ -255,11 +255,11 @@ def deploy(source, update_type, versions, **kwargs):
     if update_type == "library":
         restarts = list(pending_restarts_post.difference(pending_restarts_pre))
 
-    for i in nk.difference(ok):
+    for i in new_keys.difference(old_keys):
         additions.append[i]
-    for i in ok.difference(nk):
+    for i in old_keys.difference(new_keys):
         removals.append[i]
-    intersect = ok.intersection(nk)
+    intersect = old_keys.intersection(new_keys)
     modified = {x : (old[x], new[x]) for x in intersect if old[x] != new[x]}
 
     logging.info("Newly installed packages:" + str(additions))
@@ -277,9 +277,8 @@ def deploy(source, update_type, versions, **kwargs):
     r["aptreturn"] = apt_call['retcode']
 
     jobid = kwargs.get('__pub_jid')
-    jobfile = open("/var/lib/debdeploy/" + jobid + ".job", "w")
-    pickle.dump(r, jobfile)
-    jobfile.close()
+    with open("/var/lib/debdeploy/" + jobid + ".job", "w") as jobfile:
+        pickle.dump(r, jobfile)
 
     return r
 
@@ -289,8 +288,8 @@ def rollback(jobid):
     Roll back a software update specified by a Salt job ID
 
     '''
-    jobfile = open("/var/lib/debdeploy/" + jobid + ".job", "r")
-    r = pickle.load(jobfile)
+    with open("/var/lib/debdeploy/" + jobid + ".job", "r") as jobfile:
+        r = pickle.load(jobfile)
 
     old = list_pkgs()
     __salt__['pkg.refresh_db']
@@ -324,19 +323,19 @@ def rollback(jobid):
         aptreturn = 100
 
     new = list_pkgs()
-    ok = set(old.keys())
-    nk = set(new.keys())
+    old_keys = set(old.keys())
+    new_keys = set(new.keys())
 
     additions = []
     removals = []
     updated = []
     restarts = []
 
-    for i in nk.difference(ok):
+    for i in new_keys.difference(old_keys):
         additions.append[i]
-    for i in ok.difference(nk):
+    for i in old_keys.difference(new_keys):
         removals.append[i]
-    intersect = ok.intersection(nk)
+    intersect = old_keys.intersection(new_keys)
     modified = {x : (old[x], new[x]) for x in intersect if old[x] != new[x]}
 
     logging.info("Newly installed packages:" + str(additions))

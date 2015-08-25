@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sqlite3, os, unittest
-from debdeploylog import *
+from debdeploy_joblog import *
 
 class TestDeployJob(unittest.TestCase):
+
+    if not os.path.exists("testrun"):
+        os.mkdir("testrun")
 
     testdb = os.path.join("testrun/", "tests-jobs.sqlite")
     if os.path.exists(testdb):
@@ -23,9 +26,8 @@ fixes:
 
     yamlfile = os.path.join("job1.yaml")
     if not os.path.exists(yamlfile):
-        f = open(yamlfile, "w")
-        f.write(yaml1)
-        f.close()
+        with open(yamlfile, "w") as f:
+            f.write(yaml1)
 
     def testJobs(self):
 
@@ -56,7 +58,7 @@ fixes:
 
         self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "hostclass:testsystem"), True)
         self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "hostclass:testsystem"), "20150519122347248000")
-        
+
 if __name__ == '__main__':
     unittest.main()
 

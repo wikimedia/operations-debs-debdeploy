@@ -73,7 +73,7 @@ def display_status(rollback_mode=False):
             restart = res[host]['return']['restart']
 
             print host + ":"
-            if len(added) > 0:
+            if added:
                 print "  Added packages:", host['return']['additions']
                 for added_pkg in host['return']['additions']:
                     if not add_cnt.get(added_pkg, None):
@@ -81,7 +81,7 @@ def display_status(rollback_mode=False):
                     else:
                         add_cnt[added_pkg] += 1
 
-            elif len(removed) > 0:
+            elif removed:
                 print "  Removed packages:", host['return']['removals']
                 for removed_pkg in host['return']['removals']:
                     if not remove_cnt.get(removed_pkg, None):
@@ -104,7 +104,7 @@ def display_status(rollback_mode=False):
                 print "  No change"
 
 
-            if len(restart) > 0:
+            if restart:
                 for process in restart:
                     if len(process) > 0:
                         if not restart_cnt.get(process, None):
@@ -187,27 +187,19 @@ def deploy_update(source, update_type, grains, update_file):
     update_file : Filename of update specification (string)
     '''
 
+    update_desc = {}
+    update_desc["tool"] = "Non-daemon update, no service restart needed"
+    update_desc["daemon-direct"] = "Daemon update without user impact"
+    update_desc["daemon-disrupt"] = "Daemon update with service availability impact"
+    update_desc["library"] = "Library update, several services might need to be restarted"
+
     print "Rolling out", source, ":",
-    if update_type == "tool":
-        print "Non-daemon update, no service restart needed"
-    elif update_type == "daemon-direct":
-        print "Daemon update without user impact"
-    elif update_type == "daemon-direct":
-        print "Daemon update with service availability impact, please confirm with 'y'"
-        # confirm = raw_input(">")
-        # if confirm >= 'y':
-        #     sys.exit(0)
-    elif update_type == "daemon-cluster":
+    print update_desc[update_type]
+
+
+    if update_type in ["daemon-cluster", "reboot", "reboot-cluster"]:
         print "Not implemented yet"
         sys.exit(1)
-    elif update_type == "reboot":
-        print "Not implemented yet"
-        sys.exit(1)
-    elif update_type == "reboot-cluster":
-        print "Not implemented yet"
-        sys.exit(1)
-    elif update_type == "library":
-        print "Library update, several services might need to be restarted"
 
     for i in grains:
         if joblogdb.has_been_rolled_back(update_file, i):
@@ -253,7 +245,7 @@ def restart(grains, processes):
                 if r[host][process] == 0:
                     c_success[process] += 1
                     if opt.verbose:
-                        print "  ", process, "sucessfully restarted"
+                        print "  ", process, "successfully restarted"
                 elif r[host][process] == 1:
                     c_failed[process] += 1
                     if opt.verbose:
@@ -307,8 +299,6 @@ def rollback(grains, update_file):
         joblogdb.mark_as_rolled_back(jid, rid)
 
 
-
-
 client = salt.client.LocalClient()
 conf = DebDeployConfig("/etc/debdeploy.conf")
 joblogdb = DebDeployJobLog("/var/lib/debdeploy/jobdb.sqlite")
@@ -360,7 +350,6 @@ if command in ("pkgdb-source"):
     if not opt.host:
         op.error("You need to provide a hostname (-h)")
 
-
 if command == "deploy":
     update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
     deploy_update(update.source, update.update_type, conf.server_groups[opt.serverlist], opt.updatefile)
@@ -376,6 +365,9 @@ elif command == "status-rollback":
 
 elif command == "rollback":
     rollback(conf.server_groups[opt.serverlist], opt.updatefile)
+
+sys.exit(0)
+
 
 # elif command == "pkgdb-source":
 #     jid = client.cmd(opt.host, 'debdeploy.return_pkgs')
@@ -394,8 +386,6 @@ elif command == "rollback":
 #                 sys.exit(1)
 #             jid = client.cmd_async(i, 'debdeploy-minion.deploy', [update.source, update.fixes], expr_form='grain')
 #             joblogdb.add_job(opt.updatefile, i, jid)
-
-sys.exit(0)
 
 # Local variables:
 # mode: python

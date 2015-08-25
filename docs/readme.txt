@@ -147,6 +147,29 @@ automatic restart detection. The deploy run returns a list of
 processes which need to be restarted. This may look like this:
 
 
+----------------------------------------------------------
+$ debdeploy status-deploy -u python.yaml -s testsystem
+
+(..)
+
+Deployment summary:
+Number of hosts in this deployment run: 3
+No packages were added
+No packages were removed
+Updated packages:
+libpython2.7-minimal: 2.7.9-2 -> 2.7.10-3 on 1 hosts
+libpython2.7-stdlib: 2.7.9-2 -> 2.7.10-3 on 1 hosts
+libpython2.7: 2.7.9-2 -> 2.7.10-3 on 1 hosts
+python2.7-minimal: 2.7.9-2 -> 2.7.10-3 on 1 hosts
+python2.7: 2.7.9-2 -> 2.7.10-3 on 1 hosts
+
+Restarts needed:
+/usr/bin/diamond on 1 hosts
+
+Error summary:
+No errors found
+----------------------------------------------------------
+
 
 Restarts are intentionally not made automatically for a number of
 reasons:
