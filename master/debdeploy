@@ -11,7 +11,7 @@ from salt.scripts import salt_run
 from debdeploy_conf import *
 from debdeploy_joblog import *
 from debdeploy_updatespec import *
-from debdeploy_pkgdb import *
+#from debdeploy_pkgdb import *
 
 def display_status(rollback_mode=False):
     '''
@@ -302,7 +302,7 @@ def rollback(grains, update_file):
 client = salt.client.LocalClient()
 conf = DebDeployConfig("/etc/debdeploy.conf")
 joblogdb = DebDeployJobLog("/var/lib/debdeploy/jobdb.sqlite")
-pkgdb = DebDeployPkgDB("/var/lib/debdeploy/pkgdb.sqlite")
+#pkgdb = DebDeployPkgDB("/var/lib/debdeploy/pkgdb.sqlite")
 
 op = optparse.OptionParser()
 op.add_option("-u", "--update", action="store", type="string", dest="updatefile", help="A YAML file containing the update specification (which source package to update and the respective fixed versions")
