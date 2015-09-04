@@ -127,6 +127,15 @@ using the rollback-status command, e.g.
 
 debdeploy status-rollback -u elinks.yaml -s testsystem
 
+If you have an updatespec which applies to more than one group of
+servers (which will usually be the case for generic systems libs
+etc), you can check which server groups haven't had the update
+applied:
+
+debdeploy list-server-groups -u dpkg.yaml
+
+
+
 
 Restart detection / handling
 

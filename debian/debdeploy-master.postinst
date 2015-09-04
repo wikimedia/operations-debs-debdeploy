@@ -5,7 +5,7 @@ if [  -x /usr/lib/systemd  ]
 then
     systemctl restart salt-master.service
 else
-    service restart salt-master
+    service salt-master restart
 fi
 
 #DEBHELPER#

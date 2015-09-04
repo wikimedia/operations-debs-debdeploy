@@ -1,3 +1,10 @@
+debdeploy (0.0.4-1) jessie-wikimedia; urgency=medium
+
+  * Implement list-server-groups command
+  * Fix restart of salt-master
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 04 Sep 2015 13:37:23 +0200
+
 debdeploy (0.0.3-1) jessie-wikimedia; urgency=medium
 
   * Remove some currently unused imports

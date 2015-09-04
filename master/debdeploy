@@ -274,6 +274,40 @@ def restart(grains, processes):
             print proc, "wasn't running on on", c_stopped[proc], "out of", c, "hosts."
 
 
+def list_server_groups(update=None):
+    '''
+    List all available server groups
+
+    update      : If an update is specified, it is displayed whether an update
+                  has already been deployed for that group.
+    '''
+
+    if not update:
+        for servergroup in sorted(conf.server_groups):
+            print servergroup
+    else:
+        done_list = []
+        missing_list = []
+
+        for servergroup in conf.server_groups:
+            job_ran = False
+            for grain in conf.server_groups[servergroup]:
+                if joblogdb.does_job_exist(update, grain):
+                    job_ran = True
+            if job_ran:
+                done_list.append(servergroup)
+            else:
+                missing_list.append(servergroup)
+
+        print update, "has been applied to these server groups:"
+        for i in sorted(done_list):
+            print i
+
+        print
+        print update, "hasn't been applied to these server groups:"
+        for i in sorted(missing_list):
+            print i
+
 def rollback(grains, update_file):
     '''
     Trigger process restarts for a set of servers
@@ -319,7 +353,8 @@ op.set_usage("debdeploy-master [options] command \n \
   status-deploy        : Query the status of a software deployment, requires --update and --servers\n \
   rollback             : Rollback a software deployment\n \
   status-rollback      : Query the status of a software deployment rollback\n \
-  list-server-groups   : Display a list of all defined server groups \n \
+  list-server-groups   : Display a list of all defined server groups. If an update file is listed \n \
+                         in addition, it shows whether an update has been applied for that group. \n \
   check-missing        : Display a list of all servers which don't have an update installed \n \
   pkgdb-source         : Re-read the package status of a given host into the package database")
 
@@ -365,6 +400,12 @@ elif command == "status-rollback":
 
 elif command == "rollback":
     rollback(conf.server_groups[opt.serverlist], opt.updatefile)
+
+elif command == "list-server-groups":
+    if opt.updatefile:
+        list_server_groups(opt.updatefile)
+    else:
+        list_server_groups()
 
 sys.exit(0)
 
