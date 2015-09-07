@@ -1,3 +1,4 @@
 minion/debdeploy-minion.py /usr/lib/python2.7/dist-packages/salt/modules/
 minion/debdeploy_restart.py /usr/lib/python2.7/dist-packages/salt/modules/
+minion/debdeploy-log.py /usr/lib/python2.7/dist-packages/salt/returners/
 

@@ -53,8 +53,12 @@ def display_status(rollback_mode=False):
             jid = joblogdb.get_jobid(opt.updatefile, i)
 
         # SaltRunner always emits its status on stdout, https://github.com/saltstack/salt/issues/21392
-        # TODO: Needs some kludge to suppress it
-        job = runner.cmd('jobs.print_job', (jid,))
+        # Can be dropped once fixed upstream
+        with open('/dev/null', 'w') as discard_output:
+            oldstdout = sys.stdout
+            sys.stdout = discard_output
+            job = runner.cmd('jobs.print_job', (jid,))
+            sys.stdout = oldstdout
         if not job:
             print "Job " + str(jid) + " hasn't finished yet, please check again later"
             sys.exit(0)
@@ -212,7 +216,7 @@ def deploy_update(source, update_type, grains, update_file):
 
         if opt.verbose:
             print "Grain:", i
-        jid = client.cmd_async(i, 'debdeploy-minion.deploy', [source, update_type, update.fixes], expr_form='grain')
+        jid = client.cmd_async(i, 'debdeploy-minion.deploy', [source, update_type, update.fixes], expr_form='grain', ret='debdeploy-log')
         logging.info("Initiated rollout for " + source + " on grain " + i + "(salt job id: " + str(jid) + ")")
         joblogdb.add_job(update_file, i, jid)
 
