@@ -1,0 +1,17 @@
+
+Bugs:
+
+
+Refinements to existing functionality:
+- Bash completion for commands and options
+- Add a command to generate a YAML file interactively
+- Write initiated deployment jobs into a logfile
+- Provide logrotate configs
+- Display a warning if a host matches twice for a given grain
+
+New feature work:
+- Central package database to easily search for affected binary packages
+- Add a generic notification mechanism if an update has been deployed
+  and create a WMF-specific IRC notification which updates "server admin log"
+- Make the logging configurable and add a WMF-specific logging method for
+  Logstash
