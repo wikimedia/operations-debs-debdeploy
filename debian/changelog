@@ -2,6 +2,8 @@ debdeploy (0.0.5-1) jessie-wikimedia; urgency=medium
 
   * Add a Salt returner for local logging
   * Add workaround for Salt bug writing out it's return status to stdout
+  * Use compound matching to properly support server groups with
+    overlapping grains
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Mon, 07 Sep 2015 15:20:01 +0200
 

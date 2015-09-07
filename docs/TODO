@@ -7,7 +7,6 @@ Refinements to existing functionality:
 - Add a command to generate a YAML file interactively
 - Write initiated deployment jobs into a logfile
 - Provide logrotate configs
-- Display a warning if a host matches twice for a given grain
 
 New feature work:
 - Central package database to easily search for affected binary packages

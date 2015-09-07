@@ -47,90 +47,91 @@ def display_status(rollback_mode=False):
                 print opt.updatefile, "hasn't been deployed yet for this server group (identified by grain", i, ")"
                 sys.exit(0)
 
+        # The jid is identical for all minions in a debdeploy run
         if rollback_mode:
             jid = joblogdb.get_rollbackid(opt.updatefile, i)
         else:
             jid = joblogdb.get_jobid(opt.updatefile, i)
 
-        # SaltRunner always emits its status on stdout, https://github.com/saltstack/salt/issues/21392
-        # Can be dropped once fixed upstream
-        with open('/dev/null', 'w') as discard_output:
-            oldstdout = sys.stdout
-            sys.stdout = discard_output
-            job = runner.cmd('jobs.print_job', (jid,))
-            sys.stdout = oldstdout
-        if not job:
-            print "Job " + str(jid) + " hasn't finished yet, please check again later"
-            sys.exit(0)
+    # SaltRunner always emits its status on stdout, https://github.com/saltstack/salt/issues/21392
+    # Can be dropped once fixed upstream
+    with open('/dev/null', 'w') as discard_output:
+        oldstdout = sys.stdout
+        sys.stdout = discard_output
+        job = runner.cmd('jobs.print_job', (jid,))
+        sys.stdout = oldstdout
+    if not job:
+        print "Job " + str(jid) + " hasn't finished yet, please check again later"
+        sys.exit(0)
 
-        res = job[jid]['Result']
-        if not res:
-            print "Job hasn't finished yet, please check again later"
-            sys.exit(0)
+    res = job[jid]['Result']
+    if not res:
+        print "Job hasn't finished yet, please check again later"
+        sys.exit(0)
 
-        amount_of_hosts += len(res.keys())
+    amount_of_hosts += len(res.keys())
 
-        for host in res:
-            added = res[host]['return']['additions']
-            removed = res[host]['return']['removals']
-            updated = res[host]['return']['updated']
-            restart = res[host]['return']['restart']
+    for host in res:
+        added = res[host]['return']['additions']
+        removed = res[host]['return']['removals']
+        updated = res[host]['return']['updated']
+        restart = res[host]['return']['restart']
 
-            print host + ":"
-            if added:
-                print "  Added packages:", host['return']['additions']
-                for added_pkg in host['return']['additions']:
-                    if not add_cnt.get(added_pkg, None):
-                        add_cnt[added_pkg] = 1
-                    else:
-                        add_cnt[added_pkg] += 1
-
-            elif removed:
-                print "  Removed packages:", host['return']['removals']
-                for removed_pkg in host['return']['removals']:
-                    if not remove_cnt.get(removed_pkg, None):
-                        remove_cnt[removed_pkg] = 1
-                    else:
-                        remove_cnt[removed_pkg] += 1
-
-            elif len(updated.keys()) > 0:
-                print "  Updated packages:"
-                for k in updated:
-                    print "    " + k + ": " + updated[k][0] + " -> " + updated[k][1]
-
-                    updated_idx = k + ": " + updated[k][0] + " -> " + updated[k][1]
-                    if not update_cnt.get(updated_idx, None):
-                        update_cnt[updated_idx] = 1
-                    else:
-                        update_cnt[updated_idx] += 1
-
-            else:
-                print "  No change"
-
-
-            if restart:
-                for process in restart:
-                    if len(process) > 0:
-                        if not restart_cnt.get(process, None):
-                            restart_cnt[process] = 1
-                        else:
-                            restart_cnt[process] += 1
-
-            # Detect installation errors and collect them to display an error list
-            # across all Salt grains
-            # apt doesn't provide more fine-grained error reporting other than
-            # 0/success and 100/error, so we need to parse stderr for some common
-            # error patterns
-            if res[host]['return']['aptreturn'] == 100:
-                if res[host]['return']['apterrlog'].find("Could not get lock /var/lib/dpkg/lock") != -1:
-                    install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
+        print host + ":"
+        if added:
+            print "  Added packages:", host['return']['additions']
+            for added_pkg in host['return']['additions']:
+                if not add_cnt.get(added_pkg, None):
+                    add_cnt[added_pkg] = 1
                 else:
-                    install_errors.append(host + ": Unknown installation error")
+                    add_cnt[added_pkg] += 1
 
-            if opt.verbose:
-                print
-                indented = ['  ' + l for l in res[host]['return']['aptlog'].splitlines()]
-                print "\n".join(indented)
+        elif removed:
+            print "  Removed packages:", host['return']['removals']
+            for removed_pkg in host['return']['removals']:
+                if not remove_cnt.get(removed_pkg, None):
+                    remove_cnt[removed_pkg] = 1
+                else:
+                    remove_cnt[removed_pkg] += 1
+
+        elif len(updated.keys()) > 0:
+            print "  Updated packages:"
+            for k in updated:
+                print "    " + k + ": " + updated[k][0] + " -> " + updated[k][1]
+
+                updated_idx = k + ": " + updated[k][0] + " -> " + updated[k][1]
+                if not update_cnt.get(updated_idx, None):
+                    update_cnt[updated_idx] = 1
+                else:
+                    update_cnt[updated_idx] += 1
+
+        else:
+            print "  No change"
+
+
+        if restart:
+            for process in restart:
+                if len(process) > 0:
+                    if not restart_cnt.get(process, None):
+                        restart_cnt[process] = 1
+                    else:
+                        restart_cnt[process] += 1
+
+        # Detect installation errors and collect them to display an error list
+        # across all Salt grains
+        # apt doesn't provide more fine-grained error reporting other than
+        # 0/success and 100/error, so we need to parse stderr for some common
+        # error patterns
+        if res[host]['return']['aptreturn'] == 100:
+            if res[host]['return']['apterrlog'].find("Could not get lock /var/lib/dpkg/lock") != -1:
+                install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
+            else:
+                install_errors.append(host + ": Unknown installation error")
+
+        if opt.verbose:
+            print
+            indented = ['  ' + l for l in res[host]['return']['aptlog'].splitlines()]
+            print "\n".join(indented)
 
     print 
     print 
@@ -200,7 +201,7 @@ def deploy_update(source, update_type, grains, update_file):
     print "Rolling out", source, ":",
     print update_desc[update_type]
 
-
+    target = ""
     if update_type in ["daemon-cluster", "reboot", "reboot-cluster"]:
         print "Not implemented yet"
         sys.exit(1)
@@ -216,8 +217,13 @@ def deploy_update(source, update_type, grains, update_file):
 
         if opt.verbose:
             print "Grain:", i
-        jid = client.cmd_async(i, 'debdeploy-minion.deploy', [source, update_type, update.fixes], expr_form='grain', ret='debdeploy-log')
-        logging.info("Initiated rollout for " + source + " on grain " + i + "(salt job id: " + str(jid) + ")")
+
+        target += 'G@' + i + ' or '
+
+    target = target[:-4]
+    jid = client.cmd_async(target, 'debdeploy-minion.deploy', [source, update_type, update.fixes], expr_form='compound', ret='debdeploy-log')
+    logging.info("Initiated rollout for " + source + " on grain compound " + target + "(salt job id: " + str(jid) + ")")
+    for i in grains:
         joblogdb.add_job(update_file, i, jid)
 
 
