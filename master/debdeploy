@@ -1,7 +1,11 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, optparse, logging
+import sys, optparse, logging, os
+
+if os.geteuid() != 0:
+    print "debdeploy needs to be run as root"
+    sys.exit(1)
 
 # Logging needs to be setup before salt import, https://github.com/saltstack/salt/issues/4994
 logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log', format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s', level=logging.DEBUG)
@@ -318,6 +322,18 @@ def list_server_groups(update=None):
         for i in sorted(missing_list):
             print i
 
+def list_server_group_members(server_group):
+    '''
+    Show all servers represented by a server group
+
+    server_group        : The name of a server group (as defined in /etc/debdeploy.conf)
+    '''
+
+    print "Server group", server_group, ":"
+    members = client.cmd('*', 'match.grain', conf.server_groups[server_group])
+    for i in sorted(members):
+        print i
+
 def rollback(grains, update_file):
     '''
     Trigger process restarts for a set of servers
@@ -359,14 +375,15 @@ op.add_option("-p", "--program", action="append", type="string", dest="program",
 
 op.set_usage("debdeploy-master [options] command \n \
   The following commands are supported: \n\n \
-  deploy               : Install a software update, requires --update and --servers \n \
-  status-deploy        : Query the status of a software deployment, requires --update and --servers\n \
-  rollback             : Rollback a software deployment\n \
-  status-rollback      : Query the status of a software deployment rollback\n \
-  list-server-groups   : Display a list of all defined server groups. If an update file is listed \n \
-                         in addition, it shows whether an update has been applied for that group. \n \
-  check-missing        : Display a list of all servers which don't have an update installed \n \
-  pkgdb-source         : Re-read the package status of a given host into the package database")
+  deploy                     : Install a software update, requires --update and --servers \n \
+  status-deploy              : Query the status of a software deployment, requires --update and --servers\n \
+  rollback                   : Rollback a software deployment\n \
+  status-rollback            : Query the status of a software deployment rollback\n \
+  list-server-groups         : Display a list of all defined server groups. If an update file is listed \n \
+                               in addition, it shows whether an update has been applied for that group. \n \
+  list-server-group-members  : Show all servers represented by a server group \n \
+  check-missing              : Display a list of all servers which don't have an update installed \n \
+  pkgdb-source               : Re-read the package status of a given host into the package database")
 
 
 opt, args = op.parse_args()
@@ -377,7 +394,7 @@ if len (args) == 0 or len (args) > 1:
 
 command = args[0]
 
-if command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart"):
+if command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart", "list-server-group-members"):
     if not opt.serverlist:
         op.error("You need to provide a server list (-s)")
     if opt.serverlist not in conf.server_groups.keys():
@@ -410,6 +427,9 @@ elif command == "status-rollback":
 
 elif command == "rollback":
     rollback(conf.server_groups[opt.serverlist], opt.updatefile)
+
+elif command == "list-server-group-members":
+    list_server_group_members(opt.serverlist)
 
 elif command == "list-server-groups":
     if opt.updatefile:
