@@ -3,6 +3,7 @@ debdeploy (0.0.6-1) jessie-wikimedia; urgency=medium
   * Ensure debdeploy is run with root credentials
   * Add a command 'list-server-group-members' to show all servers
     matched by a server group
+  * Remove postinsts
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 11 Sep 2015 13:57:45 +0200
 
