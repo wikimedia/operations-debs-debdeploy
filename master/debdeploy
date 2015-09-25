@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, optparse, logging, os
+import sys, optparse, logging, os, datetime
 
 if os.geteuid() != 0:
     print "debdeploy needs to be run as root"
@@ -76,10 +76,18 @@ def display_status(rollback_mode=False):
     amount_of_hosts += len(res.keys())
 
     for host in res:
-        added = res[host]['return']['additions']
-        removed = res[host]['return']['removals']
-        updated = res[host]['return']['updated']
-        restart = res[host]['return']['restart']
+        added = False
+        if res[host]['return'].has_key('additions'):
+            added = res[host]['return']['additions']
+        removed = False
+        if res[host]['return'].has_key('removals'):
+            removed = res[host]['return']['removals']
+        updated = False
+        if res[host]['return'].has_key('updated'):
+            updated = res[host]['return']['updated']
+        restart = False
+        if res[host]['return'].has_key('restart'):
+            restart = res[host]['return']['restart']
 
         print host + ":"
         if added:
@@ -98,7 +106,7 @@ def display_status(rollback_mode=False):
                 else:
                     remove_cnt[removed_pkg] += 1
 
-        elif len(updated.keys()) > 0:
+        elif updated and len(updated.keys()) > 0:
             print "  Updated packages:"
             for k in updated:
                 print "    " + k + ": " + updated[k][0] + " -> " + updated[k][1]
@@ -126,7 +134,7 @@ def display_status(rollback_mode=False):
         # apt doesn't provide more fine-grained error reporting other than
         # 0/success and 100/error, so we need to parse stderr for some common
         # error patterns
-        if res[host]['return']['aptreturn'] == 100:
+        if res[host]['return'].has_key('aptreturn') and res[host]['return']['aptreturn'] == 100:
             if res[host]['return']['apterrlog'].find("Could not get lock /var/lib/dpkg/lock") != -1:
                 install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
             else:
@@ -334,6 +342,86 @@ def list_server_group_members(server_group):
     for i in sorted(members):
         print i
 
+def generate_spec(supported_distros):
+    '''
+    Interactivey generate an update spec file in the currently directory.
+    '''
+
+    source = ""
+    comment = ""
+    updatetype = ""
+    fixes = {}
+
+    while source == "":
+        source = raw_input("Please enter the name of source package (e.g. openssl). Leave blank or type 'quit' to abort\n>").strip()
+        if source == "" or source == "quit":
+            print "Aborting"
+            sys.exit(1)
+
+    comment = raw_input('You can enter an optional comment, e.g. a reference to a security advisory or a CVE ID mapping\n>').strip()
+    if comment == "quit":
+        print "Aborting"
+        sys.exit(1)
+
+    while updatetype not in ['tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'library', 'quit']:
+        print "tool           -> The updated packages is an enduser tool, can be"
+        print "                  rolled-out immediately."
+        print "daemon-direct  -> Daemons which are restarted during update, but which"
+        print "                  do no affect existing users."
+        print "daemon-disrupt -> Daemons which are restarted during update, where the"
+        print "                  users notice an impact. The update procedure is almost"
+        print "                  identical, but displays additional warnings"
+        print "reboot         -> Lowlevel component which requires a system reboot"
+        print "                  kernel/glibc/dbus). After installing the update, the"
+        print "                  system reboot(s) can be managed subsequently"
+        print "library        -> After a library is updated, programs may need to be"
+        print "                  restarted to fully effect the change. In addition"
+        print "                  to libs, some applications may also fall under this rule,"
+        print "                  e.g. when updating QEMU, you might need to restart VMs."
+        updatetype = raw_input("Please enter the update type:\n>").strip()
+        if source == "" or source == "quit":
+            print "Aborting"
+            sys.exit(1)
+
+    for i in supported_distros:
+        fixes[i] = raw_input("Please enter the version which fixed in in " + i + ". Leave blank if no fix is available/required for a given distro.\n>").strip()
+
+    at_least_one_fixed_version = False
+    for i in fixes.values():
+        if i != "":
+            at_least_one_fixed_version = True
+
+    if not at_least_one_fixed_version:
+        print "At least one fixed version needs to be configured, aborting"
+        sys.exit(1)
+
+
+    valid_name = False
+    suggested_name = datetime.datetime.now().strftime("%Y-%m-%d-") + source + ".yaml"
+    while not valid_name:
+        print "Please enter a name under which the YAML file should be created"
+        print "Leave blank to use ", suggested_name
+        yamlfilename = raw_input('>').strip()
+        if not yamlfilename:
+            yamlfilename = suggested_name
+        if os.path.exists(yamlfilename):
+            print "File name already exists, please re-enter."
+        else:
+            valid_name = True
+
+    try:
+        with open(yamlfilename, "w") as yamlfile:
+            yamltext = 'source: ' + source + '\n' \
+                       'comment: ' + comment + '\n' \
+                       'update_type: ' + updatetype + '\n' \
+                       'fixes:\n'
+            yamlfile.write(yamltext)
+            for i in fixes:
+                yamlfile.write("\t" + i + ": " + fixes[i] + "\n")
+    except IOError, e:
+        print "Error:", e
+        sys.exit(1)
+
 def rollback(grains, update_file):
     '''
     Trigger process restarts for a set of servers
@@ -383,6 +471,7 @@ op.set_usage("debdeploy-master [options] command \n \
                                in addition, it shows whether an update has been applied for that group. \n \
   list-server-group-members  : Show all servers represented by a server group \n \
   check-missing              : Display a list of all servers which don't have an update installed \n \
+  generate-spec              : Generate an update spec file interactively \n \
   pkgdb-source               : Re-read the package status of a given host into the package database")
 
 
@@ -421,6 +510,9 @@ elif command == "restart":
 
 elif command == "status-deploy":
     display_status()
+
+elif command == "generate-spec":
+    generate_spec(conf.supported_distros)
 
 elif command == "status-rollback":
     display_status(rollback_mode=True)

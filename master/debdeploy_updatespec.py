@@ -32,6 +32,11 @@ class DebDeployUpdateSpec(object):
             print "Error: Could not open", updatespec
             sys.exit(1)
 
+        except yaml.scanner.ScannerError, e:
+            print "Invalid YAML file:"
+            print e
+            sys.exit(1)
+
         if not updatefile.has_key("source"):
             print "Invalid YAML file, you need to specify the source package using the 'source' stanza, see the annotated example file for details"
             sys.exit(1)

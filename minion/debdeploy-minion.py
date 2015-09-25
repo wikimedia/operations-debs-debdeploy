@@ -5,7 +5,6 @@ Module for deploying DEB packages on wide scale
 
 import logging, pickle, subprocess, os
 import logging.handlers
-#import salt.log
 
 import salt.utils
 import salt.config
@@ -19,14 +18,7 @@ from salt.exceptions import (
     CommandExecutionError, MinionError, SaltInvocationError
 )
 
-
-def log_hack(msg):
-    log_file = open("/var/log/debdeploy.log", "a")
-    log_file.write(msg + "\n")
-    log_file.close()
-
-# Doesn't work, WTF?
-log = logging.getLogger('debdeploy')
+log = logging.getLogger(__name__)
 
 __opts__ = salt.config.minion_config('/etc/salt/minion')
 grains = salt.loader.grains(__opts__)
@@ -151,7 +143,7 @@ def restart_service(programs):
             if os.path.exists(os.path.join('/etc/init.d/', program_basename)):
                 service = program_basename
 
-        logging.info("Restarting " + service + " for " + program)
+        log.info("Restarting " + service + " for " + program)
         if __salt__['service.restart'](service):
             results[program] = 0
         else:
@@ -209,7 +201,7 @@ def deploy(source, update_type, versions, **kwargs):
 
     installed_distro = grains['oscodename']
     if not versions.has_key(installed_distro):
-        logging.info("Update doesn't apply to the installed distribution (" + installed_distro + ")")
+        log.info("Update doesn't apply to the installed distribution (" + installed_distro + ")")
         return {}
 
     # Detect all locally installed binary packages of a given source package
@@ -222,18 +214,20 @@ def deploy(source, update_type, versions, **kwargs):
             installed_binary_packages.append({pkg['Package'] : versions[installed_distro]})
         elif pkg.has_key('Package') and pkg['Package'] == source:
             installed_binary_packages.append({pkg['Package'] : versions[installed_distro]})
+    log.debug("Installed binary packages for " + source + ": " + str(installed_binary_packages))
 
     if len(installed_binary_packages) == 0:
-        logging.info("No binary packages installed for source package " + source)
+        log.info("No binary packages installed for source package " + source)
         return {}
 
     if update_type == "library":
         pending_restarts_pre = Checkrestart().get_programs_to_restart()
-        logging.debug("Packages needing a restart prior to the update:" + str(pending_restarts_pre))
+        log.debug("Packages needing a restart prior to the update:" + str(pending_restarts_pre))
 
     old = list_pkgs()
 
-    logging.info("Refreshing apt package database")
+    log.warn("Refreshing apt package database")
+    log.info("Refreshing apt package database")
     __salt__['pkg.refresh_db']
 
     apt_call = install_pkgs(installed_binary_packages)
@@ -242,7 +236,7 @@ def deploy(source, update_type, versions, **kwargs):
 
     if update_type == "library":
         pending_restarts_post = Checkrestart().get_programs_to_restart()
-        logging.debug("Packages needing a restart after to the update:" + str(pending_restarts_post))
+        log.debug("Packages needing a restart after to the update:" + str(pending_restarts_post))
 
     old_keys = set(old.keys())
     new_keys = set(new.keys())
@@ -262,10 +256,10 @@ def deploy(source, update_type, versions, **kwargs):
     intersect = old_keys.intersection(new_keys)
     modified = {x : (old[x], new[x]) for x in intersect if old[x] != new[x]}
 
-    logging.info("Newly installed packages:" + str(additions))
-    logging.info("Removed packages: "  + str(removals))
-    logging.info("Modified packages: " + str(modified))
-    logging.info("Packages needing a restart: " + str(restarts))
+    log.info("Newly installed packages:" + str(additions))
+    log.info("Removed packages: "  + str(removals))
+    log.info("Modified packages: " + str(modified))
+    log.info("Packages needing a restart: " + str(restarts))
 
     r = {}
     r["additions"] = additions
@@ -338,9 +332,9 @@ def rollback(jobid):
     intersect = old_keys.intersection(new_keys)
     modified = {x : (old[x], new[x]) for x in intersect if old[x] != new[x]}
 
-    logging.info("Newly installed packages:" + str(additions))
-    logging.info("Removed packages: "  + str(removals))
-    logging.info(modified)
+    log.info("Newly installed packages:" + str(additions))
+    log.info("Removed packages: "  + str(removals))
+    log.info(modified)
 
     r = {}
     r["additions"] = additions
