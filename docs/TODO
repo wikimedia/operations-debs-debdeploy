@@ -4,7 +4,6 @@ Bugs:
 
 Refinements to existing functionality:
 - Bash completion for commands and options
-- Add a command to generate a YAML file interactively
 - Write initiated deployment jobs into a logfile
 - Provide logrotate configs
 
@@ -14,3 +13,5 @@ New feature work:
   and create a WMF-specific IRC notification which updates "server admin log"
 - Make the logging configurable and add a WMF-specific logging method for
   Logstash
+- Implement timed restarts, which restart services not an once, but in
+  steps/with delays

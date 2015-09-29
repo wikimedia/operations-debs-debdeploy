@@ -3,7 +3,7 @@
 Module for deploying DEB packages on wide scale
 '''
 
-import logging, pickle, subprocess, os
+import logging, pickle, subprocess, os, re
 import logging.handlers
 
 import salt.utils
@@ -210,7 +210,12 @@ def deploy(source, update_type, versions, **kwargs):
     # binary packages not having the same name as the binary package
     installed_binary_packages = []
     for pkg in deb822.Packages.iter_paragraphs(file('/var/lib/dpkg/status')):
-        if pkg.has_key('Source') and pkg['Source'] == source:
+
+        # Source packages which have had a binNMU have a Source: entry with the source
+        # package version in brackets, so strip these
+        # If no Source: entry is present in /var/lib/dpkg/status, then the source package
+        # name is identical to the binary package name
+        if pkg.has_key('Source') and re.sub(r'\(.*?\)', '', pkg['Source']).strip() == source:
             installed_binary_packages.append({pkg['Package'] : versions[installed_distro]})
         elif pkg.has_key('Package') and pkg['Package'] == source:
             installed_binary_packages.append({pkg['Package'] : versions[installed_distro]})

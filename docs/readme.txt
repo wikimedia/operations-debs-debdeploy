@@ -2,10 +2,10 @@
 Summary
 -------
 
-debdeploy is based on salt to reuse it's authentication and transfer
-capabilities. Updates are initiated via the debdeploy tool running
-on the salt master. Servers can be grouped into arbitrary sets of
-servers/services based on Salt grains.
+debdeploy allows the deployment of software updates in Debian (or Debian-based)
+environments on a large scale. It is based on salt; updates are
+initiated via the debdeploy tool running on the salt master. Servers
+can be grouped into arbitrary sets of servers/services based on Salt grains.
 
 Basic setup
 -----------
