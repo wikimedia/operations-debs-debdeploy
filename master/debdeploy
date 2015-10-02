@@ -7,12 +7,17 @@ if os.geteuid() != 0:
     print "debdeploy needs to be run as root"
     sys.exit(1)
 
-# Logging needs to be setup before salt import, https://github.com/saltstack/salt/issues/4994
-logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log', format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s', level=logging.DEBUG)
+from debdeploy_conf import *
+
+conf = DebDeployConfig("/etc/debdeploy.conf")
+
+if conf.debug:
+    logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log', format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s', level=logging.DEBUG)
+else:
+    logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log', format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s', level=logging.INFO)
 
 import salt
 from salt.scripts import salt_run
-from debdeploy_conf import *
 from debdeploy_joblog import *
 from debdeploy_updatespec import *
 #from debdeploy_pkgdb import *
@@ -234,7 +239,7 @@ def deploy_update(source, update_type, grains, update_file):
 
     target = target[:-4]
     jid = client.cmd_async(target, 'debdeploy-minion.deploy', [source, update_type, update.fixes], expr_form='compound', ret='debdeploy-log')
-    logging.info("Initiated rollout for " + source + " on grain compound " + target + "(salt job id: " + str(jid) + ")")
+    logging.info("Initiated rollout of spec file " + update_file + " (source package " + source + ") on grain compound " + target + " (salt job id: " + str(jid) + ")")
     for i in grains:
         joblogdb.add_job(update_file, i, jid)
 
@@ -253,6 +258,8 @@ def restart(grains, processes):
     c_stopped = {}
 
     print "Restarting services. Use --verbose to also display non-failing restarts."
+    logging.info("Initiated restart of process(es) " + str(processes) + " on grain compound " + str(grains))
+
     for i in grains:
         r = client.cmd(i, 'debdeploy-minion.restart_service', [processes], expr_form='grain')
         for host in r:
@@ -286,14 +293,17 @@ def restart(grains, processes):
     print "Restart summary:"
     for proc in c_success:
         print proc, "successfully restarted on", c_success[proc], "out of", c, "hosts."
+        logging.info(proc + " successfully restarted on " + str(c_success[proc]) + " out of " +  str(c) + " hosts.")
 
     for proc in c_failed:
         if c_failed[proc] > 0:
             print proc, "failed to restart on", c_failed[proc], "out of", c, "hosts."
+            logging.info(proc + " failed to restart on " + str(c_failed[proc]) + " out of " +  str(c) + " hosts.")
 
     for proc in c_stopped:
         if c_stopped[proc] > 0:
             print proc, "wasn't running on on", c_stopped[proc], "out of", c, "hosts."
+            logging.info(proc + " wasn't running on on " + str(c_stopped[proc]) + " out of " +  str(c) + " hosts.")
 
 
 def list_server_groups(update=None):
@@ -354,21 +364,20 @@ def rollback(grains, update_file):
         if not joblogdb.does_job_exist(update_file, servergroup):
             print "No software deployment for " + update_file + " exists."
             sys.exit(1)
-        else:
-            jid = ""
-            if opt.jobid:
-                jid = opt.jobid
-            else:
-                jid = joblogdb.get_jobid(update_file, servergroup)
-            print "Initiated rollback for JID", jid
+    
+    jid = ""
+    if opt.jobid:
+        jid = opt.jobid
+    else:
+        jid = joblogdb.get_jobid(update_file, servergroup)
+    print "Initiated rollback for JID", jid
+    logging.info("Initiated rollback for JID" + jid)
 
-        rid = client.cmd_async(servergroup, 'debdeploy-minion.rollback', [jid], expr_form='grain')
+    rid = client.cmd_async(servergroup, 'debdeploy-minion.rollback', [jid], expr_form='grain')
 
-        joblogdb.mark_as_rolled_back(jid, rid)
-
+    joblogdb.mark_as_rolled_back(jid, rid)
 
 client = salt.client.LocalClient()
-conf = DebDeployConfig("/etc/debdeploy.conf")
 joblogdb = DebDeployJobLog("/var/lib/debdeploy/jobdb.sqlite")
 #pkgdb = DebDeployPkgDB("/var/lib/debdeploy/pkgdb.sqlite")
 

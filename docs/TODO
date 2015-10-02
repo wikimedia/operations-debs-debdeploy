@@ -1,11 +1,12 @@
 
 Bugs:
+- Fix minion matcher to not poke every running minion
 
 
 Refinements to existing functionality:
 - Bash completion for commands and options
-- Write initiated deployment jobs into a logfile
 - Provide logrotate configs
+- Provide git-style status view of deployments ("debdeploy status-deploy -1")
 
 New feature work:
 - Central package database to easily search for affected binary packages

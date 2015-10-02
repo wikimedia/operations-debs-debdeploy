@@ -1,3 +1,10 @@
+debdeploy (0.0.9-1) jessie-wikimedia; urgency=medium
+
+  * Tweak logging and make debug logging configurable
+  * Fix rollback jid handling, with compound matching we only have a single jid
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 02 Oct 2015 17:00:15 +0200
+
 debdeploy (0.0.8-1) jessie-wikimedia; urgency=medium
 
   * Move generation of spec files to a separate command installed in /usr/bin

@@ -13,6 +13,7 @@ class DebDeployConfig(object):
     '''
     supported_distros = []
     server_groups = {}
+    debug = False
 
     def __init__(self, configfile):
         config = ConfigParser.ConfigParser()
@@ -30,6 +31,10 @@ class DebDeployConfig(object):
         if len(self.supported_distros) < 1:
             print "You need to specify at least one supported distribution in /etc/debdeploy.conf"
             sys.exit(1)
+
+        if config.has_section("logging") and config.has_option("logging", "debug"):
+            if config.getboolean("logging", "debug"):
+                self.debug = True
 
         if not config.has_section("serverlists"):
             print "Warning: No serverlists are defined, but that means that only the implicit group 'all' is available."
