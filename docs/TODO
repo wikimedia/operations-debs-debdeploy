@@ -7,8 +7,11 @@ Refinements to existing functionality:
 - Bash completion for commands and options
 - Provide logrotate configs
 - Provide git-style status view of deployments ("debdeploy status-deploy -1")
+- Silence the restart false positive for the salt minion itself
 
 New feature work:
+- Implement a function to list of reverse dependencies of a package (to give
+  an estimate what a package is used for on a server group)
 - Central package database to easily search for affected binary packages
 - Add a generic notification mechanism if an update has been deployed
   and create a WMF-specific IRC notification which updates "server admin log"
@@ -16,3 +19,4 @@ New feature work:
   Logstash
 - Implement timed restarts, which restart services not an once, but in
   steps/with delays
+- Allow referencing other server groups, e.g. "foo: @foo-canary, @foo-standard"
