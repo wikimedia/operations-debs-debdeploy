@@ -1,13 +1,22 @@
 
+Data:
+- Fold in canary groups to the superordinate groups
+- Create meta server groups (like all canaries)
+
 Bugs:
 - Fix minion matcher to not poke every running minion
-
+- Double-checking pinning to a specific version to update to (on precise)
+- Only store a single joblog entry for multi-grain groups
+  or rather store the name of the server group, needs some thought.
 
 Refinements to existing functionality:
 - Bash completion for commands and options
 - Provide logrotate configs
 - Provide git-style status view of deployments ("debdeploy status-deploy -1")
 - Silence the restart false positive for the salt minion itself
+- Add a git-style internal pager for commands with a lot of terminal output
+- Make the black list in the restart detection code configurable and blacklist
+  /var/spool/kafka in our internal setup
 
 New feature work:
 - Implement a function to list of reverse dependencies of a package (to give
@@ -20,3 +29,4 @@ New feature work:
 - Implement timed restarts, which restart services not an once, but in
   steps/with delays
 - Allow referencing other server groups, e.g. "foo: @foo-canary, @foo-standard"
+- Implement timed updates (with a delay)
