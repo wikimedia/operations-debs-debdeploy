@@ -147,7 +147,8 @@ def display_status(rollback_mode=False):
 
         if opt.verbose:
             print
-            indented = ['  ' + l for l in res[host]['return']['aptlog'].splitlines()]
+            if res[host]['return'].has_key('aptlog'):
+                indented = ['  ' + l for l in res[host]['return']['aptlog'].splitlines()]
             print "\n".join(indented)
 
     print 
