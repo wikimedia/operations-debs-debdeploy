@@ -4,6 +4,10 @@ debdeploy (0.0.9-1) jessie-wikimedia; urgency=medium
   * Fix rollback jid handling, with compound matching we only have a
     single jid
   * Fix traceback for verbose view of status-deploy
+  * Record the name of the server group in the jobs database rather
+    then referencing the Salt grains. This was a poor initial design
+    decision which causes problems when deploying an update to server
+    groups with overlapping Salt grains.
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 02 Oct 2015 17:00:15 +0200
 

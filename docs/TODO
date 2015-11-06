@@ -6,8 +6,6 @@ Data:
 Bugs:
 - Fix minion matcher to not poke every running minion
 - Double-checking pinning to a specific version to update to (on precise)
-- Only store a single joblog entry for multi-grain groups
-  or rather store the name of the server group, needs some thought.
 
 Refinements to existing functionality:
 - Bash completion for commands and options

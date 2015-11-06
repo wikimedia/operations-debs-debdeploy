@@ -31,33 +31,33 @@ fixes:
 
     def testJobs(self):
 
-        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "hostclass:testsystem"), False)
-        self.assertEqual(self.joblogdb.does_job_exist("fake.yaml", "hostclass:testsystem"), False)
-        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "horstclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist("fake.yaml", "testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "tesstsystem"), False)
 
-        self.joblogdb.add_job(self.yamlfile, "hostclass:testsystem", "20150519122347247890")
+        self.joblogdb.add_job(self.yamlfile, "testsystem", "20150519122347247890")
 
-        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "hostclass:testsystem"), True)
-        self.assertEqual(self.joblogdb.does_job_exist("fake.yaml", "hostclass:testsystem"), False)
-        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "horstclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "testsystem"), True)
+        self.assertEqual(self.joblogdb.does_job_exist("fake.yaml", "testsystem"), False)
+        self.assertEqual(self.joblogdb.does_job_exist(self.yamlfile, "tesstsystem"), False)
 
-        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "hostclass:testsystem"), False)
-        self.assertEqual(self.joblogdb.has_been_rolled_back("fake.yaml", "hostclass:testsystem"), False)
-        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "horstclass:testsystem"), False)
+        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "testsystem"), False)
+        self.assertEqual(self.joblogdb.has_been_rolled_back("fake.yaml", "testsystem"), False)
+        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "tesstsystem"), False)
 
-        self.assertEqual(self.joblogdb.get_jobid(self.yamlfile, "hostclass:testsystem"), "20150519122347247890")
-        self.assertEqual(self.joblogdb.get_jobid("fake.yaml", "hostclass:testsystem"), None)
-        self.assertEqual(self.joblogdb.get_jobid(self.yamlfile, "horstclass:testsystem"), None)
+        self.assertEqual(self.joblogdb.get_jobid(self.yamlfile, "testsystem"), "20150519122347247890")
+        self.assertEqual(self.joblogdb.get_jobid("fake.yaml", "testsystem"), None)
+        self.assertEqual(self.joblogdb.get_jobid(self.yamlfile, "tesstsystem"), None)
 
-        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "hostclass:testsystem"), "")
-        self.assertEqual(self.joblogdb.get_rollbackid("fake.yaml", "hostclass:testsystem"), None)
-        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "horstclass:testsystem"), None)
+        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "testsystem"), "")
+        self.assertEqual(self.joblogdb.get_rollbackid("fake.yaml", "testsystem"), None)
+        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "tesstsystem"), None)
 
         self.assertRaises(ValueError, self.joblogdb.mark_as_rolled_back, "10150519122347247890", "20150519122347248000")
         self.joblogdb.mark_as_rolled_back("20150519122347247890", "20150519122347248000")
 
-        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "hostclass:testsystem"), True)
-        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "hostclass:testsystem"), "20150519122347248000")
+        self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "testsystem"), True)
+        self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "testsystem"), "20150519122347248000")
 
 if __name__ == '__main__':
     unittest.main()

@@ -18,85 +18,85 @@ class DebDeployJobLog(object):
             conn = sqlite3.connect(self.sqlite_dbfilename)
 
             with conn:
-                conn.execute('CREATE TABLE updates (updatespec text, grain text, jobid text, rollbackid text)')
+                conn.execute('CREATE TABLE updates (updatespec text, servergroup text, jobid text, rollbackid text)')
 
-    def add_job(self, yamlfile, grain, jid):
+    def add_job(self, yamlfile, servergroup, jid):
         '''
         This function records a software deployment in the job database.
 
         yamlfile = name of transaction file (string)
-        grain = group of servers identified by a grain (string)
+        servergroup = group of servers (specified in debdeploy.conf) (string)
         '''
         conn = sqlite3.connect(self.sqlite_dbfilename)
 
-        v = (str(yamlfile), str(grain), str(jid), "")
+        v = (str(yamlfile), str(servergroup), str(jid), "")
         with conn:
             conn.execute('INSERT INTO updates VALUES (?, ?, ?, ?)', v)
 
-    def does_job_exist(self, yamlfile, grain):
+    def does_job_exist(self, yamlfile, servergroup):
         '''
         This boolean function returns whether a software update has been deployed yet.
 
         yamlfile = name of transaction file (string)
-        grain = group of servers identified by a grain (string)
+        servergroup = group of servers (specified in debdeploy.conf) (string)
         '''
         conn = sqlite3.connect(self.sqlite_dbfilename)
         with conn:
-            r = conn.execute("SELECT * FROM updates WHERE updatespec=? AND grain=?", (yamlfile,grain,)).fetchall()
+            r = conn.execute("SELECT * FROM updates WHERE updatespec=? AND servergroup=?", (yamlfile,servergroup,)).fetchall()
             if len(r) > 0:
                 return True
             else:
                 return False
 
-    def has_been_rolled_back(self, yamlfile, grain):
+    def has_been_rolled_back(self, yamlfile, servergroup):
         '''
         This boolean function returns whether a deployed software update has been rolled back.
 
         yamlfile = name of transaction file (string)
-        grain = group of servers identified by a grain (string)
+        servergroup = group of servers (specified in debdeploy.conf) (string)
         '''
         conn = sqlite3.connect(self.sqlite_dbfilename)
         with conn:
-            r = conn.execute("SELECT * FROM updates WHERE updatespec=? and grain=? and rollbackid !=''", (yamlfile,grain,)).fetchall()
+            r = conn.execute("SELECT * FROM updates WHERE updatespec=? and servergroup=? and rollbackid !=''", (yamlfile,servergroup,)).fetchall()
             if len(r) > 0:
                 return True
             else:
                 return False
 
-    def get_jobid(self, yamlfile, grain):
+    def get_jobid(self, yamlfile, servergroup):
         '''
         This function returns the ID of a deployed software update. Returns None for
-        invalid updatefile/grain.
+        invalid updatefile/server group.
 
         yamlfile = name of transaction file (string)
-        grain = group of servers identified by a grain (string)
+        servergroup = group of servers (specified in debdeploy.conf) (string)
         '''
         conn = sqlite3.connect(self.sqlite_dbfilename)
 
         with conn:
-            r = conn.execute("SELECT jobid FROM updates WHERE updatespec=? and grain=?", (yamlfile,grain,)).fetchall()
+            r = conn.execute("SELECT jobid FROM updates WHERE updatespec=? and servergroup=?", (yamlfile,servergroup,)).fetchall()
 
             if not r:
                 return None
 
             if len(r) > 1:
-                raise ValueError, "Multiple jobs found for update " + yamlfile + " on grain " + grain
+                raise ValueError, "Multiple jobs found for update " + yamlfile + " on server group " + servergroup
             else:
                 return r[0][0]
 
-    def get_rollbackid(self, yamlfile, grain):
+    def get_rollbackid(self, yamlfile, servergroup):
         '''
         This function returns the ID of a rollback transaction. Returns None for
-        invalid update/grain and an empty string for updates which haven't been
+        invalid update/server group and an empty string for updates which haven't been
         rolled back yet.
 
         yamlfile = name of transaction file (string)
-        grain = group of servers identified by a grain (string)
+        servergroup = group of servers (specified in debdeploy.conf) (string)
         '''
         conn = sqlite3.connect(self.sqlite_dbfilename)
 
         with conn:
-            r = conn.execute("SELECT rollbackid FROM updates WHERE updatespec=? and grain=?", (yamlfile,grain,)).fetchall()
+            r = conn.execute("SELECT rollbackid FROM updates WHERE updatespec=? and servergroup=?", (yamlfile,servergroup,)).fetchall()
             if not r:
                 return None
             else:

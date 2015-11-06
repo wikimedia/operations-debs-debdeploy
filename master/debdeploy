@@ -41,26 +41,23 @@ def display_status(rollback_mode=False):
     install_errors = []
     restart_cnt = {}
 
-    for i in conf.server_groups[opt.serverlist]:
+    if rollback_mode:
+        if not joblogdb.does_job_exist(opt.updatefile, opt.serverlist):
+            print opt.updatefile, "hasn't been deployed yet for this server group (", opt.serverlist, "), so we can't roll it back either."
+            sys.exit(0)
 
-        if rollback_mode:
-            if not joblogdb.does_job_exist(opt.updatefile, i):
-                print opt.updatefile, "hasn't been deployed yet for this server group (identified by grain", i, "), so we can't roll it back either."
-                sys.exit(0)
+        if not joblogdb.has_been_rolled_back(opt.updatefile, opt.serverlist):
+            print opt.updatefile, "hasn't been rolled-back yet for this server group (", opt.serverlist, ")"
+            sys.exit(0)
+    else:
+        if not joblogdb.does_job_exist(opt.updatefile, opt.serverlist):
+            print opt.updatefile, "hasn't been deployed yet for this server group (", opt.serverlist, ")"
+            sys.exit(0)
 
-            if not joblogdb.has_been_rolled_back(opt.updatefile, i):
-                print opt.updatefile, "hasn't been rolled-back yet for this server group (identified by grain", i, ")"
-                sys.exit(0)
-        else:
-            if not joblogdb.does_job_exist(opt.updatefile, i):
-                print opt.updatefile, "hasn't been deployed yet for this server group (identified by grain", i, ")"
-                sys.exit(0)
-
-        # The jid is identical for all minions in a debdeploy run
-        if rollback_mode:
-            jid = joblogdb.get_rollbackid(opt.updatefile, i)
-        else:
-            jid = joblogdb.get_jobid(opt.updatefile, i)
+    if rollback_mode:
+        jid = joblogdb.get_rollbackid(opt.updatefile, opt.serverlist)
+    else:
+        jid = joblogdb.get_jobid(opt.updatefile, opt.serverlist)
 
     # SaltRunner always emits its status on stdout, https://github.com/saltstack/salt/issues/21392
     # Can be dropped once fixed upstream
@@ -200,7 +197,7 @@ def display_status(rollback_mode=False):
         for i in install_errors:
             print i
 
-def deploy_update(source, update_type, grains, update_file):
+def deploy_update(source, update_type, grains, update_file, servergroup):
     '''
     Initiate a deployment. The job is processed asynchrously by Salt.
 
@@ -208,6 +205,7 @@ def deploy_update(source, update_type, grains, update_file):
     update_type : Various types of packages have different outcome, see doc/readme.txt (string)
     grains      : Apply the update on this list of Salt grains (list of strings)
     update_file : Filename of update specification (string)
+    servergroup : The name of the server group (string)
     '''
 
     update_desc = {}
@@ -224,25 +222,21 @@ def deploy_update(source, update_type, grains, update_file):
         print "Not implemented yet"
         sys.exit(1)
 
+    if joblogdb.has_been_rolled_back(update_file, servergroup):
+        print update_file, "was already deployed and rolled back for this server group (identified by grain", i, "), if you want to redeploy you need to assign a different name"
+        sys.exit(1)
+
+    if joblogdb.does_job_exist(update_file, servergroup):
+        print update_file, "was already deployed for this server group (", i, "), if you want to rollback the change use the <rollback> command."
+        sys.exit(1)
+
     for i in grains:
-        if joblogdb.has_been_rolled_back(update_file, i):
-            print update_file, "was already deployed and rolled back for this server group (identified by grain", i, "), if you want to redeploy you need to assign a different name"
-            sys.exit(1)
-
-        if joblogdb.does_job_exist(update_file, i):
-            print update_file, "was already deployed for this server group (identified by grain", i, "), if you want to rollback the change use the <rollback> command."
-            sys.exit(1)
-
-        if opt.verbose:
-            print "Grain:", i
-
         target += 'G@' + i + ' or '
 
     target = target[:-4]
     jid = client.cmd_async(target, 'debdeploy-minion.deploy', [source, update_type, update.fixes], expr_form='compound', ret='debdeploy-log')
     logging.info("Initiated rollout of spec file " + update_file + " (source package " + source + ") on grain compound " + target + " (salt job id: " + str(jid) + ")")
-    for i in grains:
-        joblogdb.add_job(update_file, i, jid)
+    joblogdb.add_job(update_file, servergroup, jid)
 
 
 def restart(grains, processes):
@@ -324,9 +318,8 @@ def list_server_groups(update=None):
 
         for servergroup in conf.server_groups:
             job_ran = False
-            for grain in conf.server_groups[servergroup]:
-                if joblogdb.does_job_exist(update, grain):
-                    job_ran = True
+            if joblogdb.does_job_exist(update, servergroup):
+                job_ran = True
             if job_ran:
                 done_list.append(servergroup)
             else:
@@ -353,18 +346,17 @@ def list_server_group_members(server_group):
     for i in sorted(members):
         print i
 
-def rollback(grains, update_file):
+def rollback(servergroup, update_file):
     '''
     Trigger process restarts for a set of servers
 
-    grains      : Rollback an update on this list of Salt grains (list of strings)
+    servergroup      : Rollback an update on this server group (string)
     update_file : Filename of update specification (string)
     '''
 
-    for servergroup in grains:
-        if not joblogdb.does_job_exist(update_file, servergroup):
-            print "No software deployment for " + update_file + " exists."
-            sys.exit(1)
+    if not joblogdb.does_job_exist(update_file, servergroup):
+        print "No software deployment for " + update_file + " exists."
+        sys.exit(1)
     
     jid = ""
     if opt.jobid:
@@ -374,7 +366,12 @@ def rollback(grains, update_file):
     print "Initiated rollback for JID", jid
     logging.info("Initiated rollback for JID" + jid)
 
-    rid = client.cmd_async(servergroup, 'debdeploy-minion.rollback', [jid], expr_form='grain')
+    target = ""
+    for i in conf.server_groups[servergroup]:
+        target += 'G@' + i + ' or '
+    target = target[:-4]
+
+    rid = client.cmd_async(target, 'debdeploy-minion.rollback', [jid], expr_form='compound')
 
     joblogdb.mark_as_rolled_back(jid, rid)
 
@@ -433,7 +430,7 @@ if command in ("pkgdb-source"):
 
 if command == "deploy":
     update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
-    deploy_update(update.source, update.update_type, conf.server_groups[opt.serverlist], opt.updatefile)
+    deploy_update(update.source, update.update_type, conf.server_groups[opt.serverlist], opt.updatefile, opt.serverlist)
 
 elif command == "restart":
     restart(conf.server_groups[opt.serverlist], opt.program)
@@ -445,7 +442,7 @@ elif command == "status-rollback":
     display_status(rollback_mode=True)
 
 elif command == "rollback":
-    rollback(conf.server_groups[opt.serverlist], opt.updatefile)
+    rollback(opt.serverlist, opt.updatefile)
 
 elif command == "list-server-group-members":
     list_server_group_members(opt.serverlist)
@@ -457,25 +454,6 @@ elif command == "list-server-groups":
         list_server_groups()
 
 sys.exit(0)
-
-
-# elif command == "pkgdb-source":
-#     jid = client.cmd(opt.host, 'debdeploy.return_pkgs')
-
-#     if opt.serverlist == "all":
-#         ret = client.cmd("*", 'debdeploy-minion.deploy', [update.source, update.fixes])
-#     else:
-#     # there can be multiple grains specified in a server list
-#         for i in conf.server_groups[opt.serverlist]:
-#             if joblogdb.has_been_rolled_back(opt.updatefile, i):
-#                 print opt.updatefile, "was already deployed and rolled back for this server group (identified by grain", i, "), if you want to redeploy you need to assign a different name"
-#                 sys.exit(1)
-
-#             if joblogdb.does_job_exist(opt.updatefile, i):
-#                 print opt.updatefile, "was already deployed for this server group (identified by grain", i, "), if you want to rollback the change use the <rollback> command."
-#                 sys.exit(1)
-#             jid = client.cmd_async(i, 'debdeploy-minion.deploy', [update.source, update.fixes], expr_form='grain')
-#             joblogdb.add_job(opt.updatefile, i, jid)
 
 # Local variables:
 # mode: python
