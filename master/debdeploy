@@ -127,9 +127,10 @@ def display_status(rollback_mode=False):
             for process in restart:
                 if len(process) > 0:
                     if not restart_cnt.get(process, None):
-                        restart_cnt[process] = 1
+                        restart_cnt[process] = []
+                        restart_cnt[process].append(host)
                     else:
-                        restart_cnt[process] += 1
+                        restart_cnt[process].append(host)
 
         # Detect installation errors and collect them to display an error list
         # across all Salt grains
@@ -186,7 +187,11 @@ def display_status(rollback_mode=False):
     else:
         print "Restarts needed:"
         for process in sorted(restart_cnt.keys()):
-            print process, "on", restart_cnt[process], "hosts"
+            print process, "on", len(restart_cnt[process]), "hosts:"
+            print "  ",
+            for i in restart_cnt[process]:
+                print i,
+            print
 
     print
     print "Error summary:"
@@ -223,7 +228,7 @@ def deploy_update(source, update_type, grains, update_file, servergroup):
         sys.exit(1)
 
     if joblogdb.has_been_rolled_back(update_file, servergroup):
-        print update_file, "was already deployed and rolled back for this server group (identified by grain", i, "), if you want to redeploy you need to assign a different name"
+        print update_file, "was already deployed and rolled back for this server group, if you want to redeploy you need to assign a different name"
         sys.exit(1)
 
     if joblogdb.does_job_exist(update_file, servergroup):

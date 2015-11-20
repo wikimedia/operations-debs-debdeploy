@@ -1,3 +1,11 @@
+debdeploy (0.0.10-1) jessie-wikimedia; urgency=medium
+
+  * Fix a traceback in status display
+  * List hosts needing a restart by default instead of only showing
+    the amount of processes requiring a restart
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 20 Nov 2015 12:50:01 +0100
+
 debdeploy (0.0.9-1) jessie-wikimedia; urgency=medium
 
   * Tweak logging and make debug logging configurable
