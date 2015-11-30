@@ -390,7 +390,7 @@ op.add_option("-s", "--servers", action="store", type="string", dest="serverlist
 op.add_option("-j", "--jobid", action="store", type="string", dest="jobid", help="Some commands (e.g. rollout require) require a specific job ID in case multiple invocations of an update have been made")
 op.add_option("--host", action="store", type="string", dest="host", help="Some commands (e.g. pkgdb-source) a specific hostname")
 op.add_option("--verbose", action="store_true", dest="verbose", help="Enable verbose output, e.g. show full apt output in status-deploy and status-rollback")
-op.add_option("-p", "--program", action="append", type="string", dest="program", help="A YAML file containing the update specification (which source package to update and the respective fixed versions")
+op.add_option("-p", "--program", action="append", type="string", dest="program", help="The program(s) to restart on a server group")
 
 
 op.set_usage("debdeploy-master [options] command \n \
