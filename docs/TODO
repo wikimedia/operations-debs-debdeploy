@@ -6,6 +6,8 @@ Data:
 Bugs:
 - Fix minion matcher to not poke every running minion
 - Double-checking pinning to a specific version to update to (on precise)
+- The minion chokes on packages which are in status "rc", but which don't
+  contain any files, they should be ignored entirely
 
 Refinements to existing functionality:
 - Bash completion for commands and options
@@ -14,7 +16,10 @@ Refinements to existing functionality:
 - Silence the restart false positive for the salt minion itself
 - Add a git-style internal pager for commands with a lot of terminal output
 - Make the black list in the restart detection code configurable and blacklist
-  /var/spool/kafka in our internal setup
+  /var/spool/kafka and /var/lib/elasticsearch in our internal setup
+- puppet triggers a run every 30 mins, sometimes updates clash with that, the
+  minion should detect a running "apt-get update" and postpone the installation
+  run
 
 New feature work:
 - Implement a function to list of reverse dependencies of a package (to give
