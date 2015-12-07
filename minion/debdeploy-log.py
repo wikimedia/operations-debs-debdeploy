@@ -7,8 +7,9 @@ import datetime
 
 def returner(ret):
     with open("/var/log/debdeploy.log", "a") as log:
-        indented = [datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S ") + l for l in ret['return']['aptlog'].splitlines()]
-        log.write("\n".join(indented))
+        if ret['return'].has_key('aptlog'):
+            indented = [datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S ") + l for l in ret['return']['aptlog'].splitlines()]
+            log.write("\n".join(indented))
 
 # Local variables:
 # mode: python
