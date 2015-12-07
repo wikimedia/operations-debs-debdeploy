@@ -78,6 +78,12 @@ def display_status(rollback_mode=False):
     amount_of_hosts += len(res.keys())
 
     for host in res:
+
+        # Error message returned by the minion, e.g. if a minion hasn't correctly setup the debdeploy module
+        if type(res[host]['return']) is str:
+            install_errors.append(host + ": " + res[host]['return'])
+            continue
+
         added = False
         if res[host]['return'].has_key('additions'):
             added = res[host]['return']['additions']
