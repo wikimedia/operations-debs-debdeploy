@@ -144,7 +144,9 @@ def display_status(rollback_mode=False):
         # 0/success and 100/error, so we need to parse stderr for some common
         # error patterns
         if res[host]['return'].has_key('aptreturn') and res[host]['return']['aptreturn'] == 100:
-            if res[host]['return']['apterrlog'].find("Could not get lock /var/lib/dpkg/lock") != -1:
+            if res[host]['return']['apterrlog'].find("Could not get lock /var/lib/dpkg/lock") != -1: # older dpkg
+                install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
+            elif res[host]['return']['apterrlog'].find("dpkg status database is locked by another process") != -1: # contemporary dpkg
                 install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
             else:
                 install_errors.append(host + ": Unknown installation error")
