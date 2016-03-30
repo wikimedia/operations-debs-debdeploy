@@ -148,6 +148,8 @@ def display_status(rollback_mode=False):
                 install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
             elif res[host]['return']['apterrlog'].find("dpkg status database is locked by another process") != -1: # contemporary dpkg
                 install_errors.append(host + ": The dpkg status database is locked, possibly a conflicting package installation")
+            elif res[host]['return']['apterrlog'].find("was not found") != -1:
+                install_errors.append(host + ": The version to be installed could not be found. It might have been superceded by a more recent version or the apt source is incomplete")
             else:
                 install_errors.append(host + ": Unknown installation error")
 
@@ -155,7 +157,7 @@ def display_status(rollback_mode=False):
             print
             if res[host]['return'].has_key('aptlog'):
                 indented = ['  ' + l for l in res[host]['return']['aptlog'].splitlines()]
-            print "\n".join(indented)
+                print "\n".join(indented)
 
     print 
     print 
