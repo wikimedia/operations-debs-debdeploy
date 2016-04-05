@@ -1,8 +1,6 @@
 
 Bugs:
 - Double-checking pinning to a specific version to update to (on precise)
-- The minion chokes on packages which are in status "rc", but which don't
-  contain any files, they should be ignored entirely
 
 Refinements to existing functionality:
 - Bash completion for commands and options

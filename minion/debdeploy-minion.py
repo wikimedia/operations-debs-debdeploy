@@ -211,6 +211,14 @@ def deploy(source, update_type, versions, **kwargs):
     installed_binary_packages = []
     for pkg in deb822.Packages.iter_paragraphs(file('/var/lib/dpkg/status')):
 
+        # skip packages in deinstalled status ("rc" in dpkg). These are not relevant for
+        # upgrades and cause problems when binary package names have changed (since package
+        # installations are forced with a specific version which is not available for those
+        # outdated binary package names)
+        installation_status = pkg['Status'].split()[0]
+        if installation_status == "deinstall":
+            continue
+
         # Source packages which have had a binNMU have a Source: entry with the source
         # package version in brackets, so strip these
         # If no Source: entry is present in /var/lib/dpkg/status, then the source package

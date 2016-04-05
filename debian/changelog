@@ -7,6 +7,8 @@ debdeploy (0.0.10-1) jessie-wikimedia; urgency=medium
     dict, but a free-form string error message. Log these as well.
     Also, fix local minion apt logging in that case.
   * Detect outdated package versions and flag an error
+  * Packages in deinstalled status ("rc" in dpkg) are now ignored by
+    the minion
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 20 Nov 2015 12:50:01 +0100
 
