@@ -258,9 +258,11 @@ def deploy(source, update_type, versions, **kwargs):
     removals = []
     updated = []
     restarts = []
+    new_restarts = []
 
     if update_type == "library":
-        restarts = list(pending_restarts_post.difference(pending_restarts_pre))
+        restarts = list(pending_restarts_post)
+        new_restarts = list(pending_restarts_post.difference(pending_restarts_pre))
 
     for i in new_keys.difference(old_keys):
         additions.append[i]
@@ -273,11 +275,13 @@ def deploy(source, update_type, versions, **kwargs):
     log.info("Removed packages: "  + str(removals))
     log.info("Modified packages: " + str(modified))
     log.info("Packages needing a restart: " + str(restarts))
+    log.info("New packages needing a restart: " + str(new_restarts))
 
     r = {}
     r["additions"] = additions
     r["removals"] = removals
     r["updated"] = modified
+    r["new_restart"] = new_restarts
     r["restart"] = restarts
     r["aptlog"] = str(apt_call['stdout'])
     r["apterrlog"] = str(apt_call['stderr'])

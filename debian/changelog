@@ -9,6 +9,9 @@ debdeploy (0.0.10-1) jessie-wikimedia; urgency=medium
   * Detect outdated package versions and flag an error
   * Packages in deinstalled status ("rc" in dpkg) are now ignored by
     the minion
+  * List all required restarts next to the new restarts introduced by
+    the library upgrade, useful when updating severals in one batch
+    and bundling the service restarts
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 20 Nov 2015 12:50:01 +0100
 

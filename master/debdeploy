@@ -40,6 +40,7 @@ def display_status(rollback_mode=False):
     update_cnt = {}
     install_errors = []
     restart_cnt = {}
+    new_restart_cnt = {}
 
     if rollback_mode:
         if not joblogdb.does_job_exist(opt.updatefile, opt.serverlist):
@@ -96,6 +97,9 @@ def display_status(rollback_mode=False):
         restart = False
         if res[host]['return'].has_key('restart'):
             restart = res[host]['return']['restart']
+        new_restart = False
+        if res[host]['return'].has_key('new_restart'):
+            new_restart = res[host]['return']['new_restart']
 
         print host + ":"
         if added:
@@ -137,6 +141,15 @@ def display_status(rollback_mode=False):
                         restart_cnt[process].append(host)
                     else:
                         restart_cnt[process].append(host)
+
+        if new_restart:
+            for process in new_restart:
+                if len(process) > 0:
+                    if not new_restart_cnt.get(process, None):
+                        new_restart_cnt[process] = []
+                        new_restart_cnt[process].append(host)
+                    else:
+                        new_restart_cnt[process].append(host)
 
         # Detect installation errors and collect them to display an error list
         # across all Salt grains
@@ -200,6 +213,14 @@ def display_status(rollback_mode=False):
             print process, "on", len(restart_cnt[process]), "hosts:"
             print "  ",
             for i in restart_cnt[process]:
+                print i,
+            print
+        print
+        print "New restarts needed:"
+        for process in sorted(new_restart_cnt.keys()):
+            print process, "on", len(new_restart_cnt[process]), "hosts:"
+            print "  ",
+            for i in new_restart_cnt[process]:
                 print i,
             print
 
