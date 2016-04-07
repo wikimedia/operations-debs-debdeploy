@@ -263,7 +263,7 @@ def deploy_update(source, update_type, grains, update_file, servergroup):
         sys.exit(1)
 
     if joblogdb.does_job_exist(update_file, servergroup):
-        print update_file, "was already deployed for this server group (", i, "), if you want to rollback the change use the <rollback> command."
+        print update_file, "was already deployed for this server group (", servergroup, "), if you want to rollback the change use the <rollback> command."
         sys.exit(1)
 
     for i in grains:

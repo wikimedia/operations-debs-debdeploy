@@ -12,6 +12,7 @@ debdeploy (0.0.10-1) jessie-wikimedia; urgency=medium
   * List all required restarts next to the new restarts introduced by
     the library upgrade, useful when updating severals in one batch
     and bundling the service restarts
+  * Fix traceback in error message if update is deployed twice
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 20 Nov 2015 12:50:01 +0100
 
