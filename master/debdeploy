@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys, optparse, logging, os, datetime
+import sys, logging, os, datetime, argparse
 
 if os.geteuid() != 0:
     print "debdeploy needs to be run as root"
@@ -415,77 +415,71 @@ client = salt.client.LocalClient()
 joblogdb = DebDeployJobLog("/var/lib/debdeploy/jobdb.sqlite")
 #pkgdb = DebDeployPkgDB("/var/lib/debdeploy/pkgdb.sqlite")
 
-op = optparse.OptionParser()
-op.add_option("-u", "--update", action="store", type="string", dest="updatefile", help="A YAML file containing the update specification (which source package to update and the respective fixed versions")
-op.add_option("-s", "--servers", action="store", type="string", dest="serverlist", help="The group of servers on which the update should be applied")
-op.add_option("-j", "--jobid", action="store", type="string", dest="jobid", help="Some commands (e.g. rollout require) require a specific job ID in case multiple invocations of an update have been made")
-op.add_option("--host", action="store", type="string", dest="host", help="Some commands (e.g. pkgdb-source) a specific hostname")
-op.add_option("--verbose", action="store_true", dest="verbose", help="Enable verbose output, e.g. show full apt output in status-deploy and status-rollback")
-op.add_option("-p", "--program", action="append", type="string", dest="program", help="The program(s) to restart on a server group")
+p = argparse.ArgumentParser(usage="debdeploy-master [options] command <cmd-option>\n \
+   The following commands are supported: \n\n \
+   deploy                     : Install a software update, requires --update and --servers \n \
+   status-deploy              : Query the status of a software deployment, requires --update and --servers\n \
+   restart                    : Restart a service on all servers of a server group \n \
+   rollback                   : Rollback a software deployment\n \
+   status-rollback            : Query the status of a software deployment rollback\n \
+   list-server-groups         : Display a list of all defined server groups. If an update file is listed \n \
+                                in addition, it shows whether an update has been applied for that group. \n \
+   list-server-group-members  : Show all servers represented by a server group \n \
+   check-missing              : Display a list of all servers which don't have an update installed \n \
+   pkgdb-source               : Re-read the package status of a given host into the package database")
 
+p.add_argument("-u", "--update", action="store", type=str, dest="updatefile", help="A YAML file containing the update specification (which source package to update and the respective fixed versions")
+p.add_argument("-s", "--servers", action="store", type=str, dest="serverlist", help="The group of servers on which the update should be applied")
+p.add_argument("-j", "--jobid", action="store", type=str, dest="jobid", help="Some commands (e.g. rollout require) require a specific job ID in case multiple invocations of an update have been made")
+p.add_argument("--host", action="store", type=str, dest="host", help="Some commands (e.g. pkgdb-source) a specific hostname")
+p.add_argument("--verbose", action="store_true", dest="verbose", help="Enable verbose output, e.g. show full apt output in status-deploy and status-rollback")
+p.add_argument("-p", "--program", action="append", type=str, dest="program", help="The program(s) to restart on a server group")
 
-op.set_usage("debdeploy-master [options] command \n \
-  The following commands are supported: \n\n \
-  deploy                     : Install a software update, requires --update and --servers \n \
-  status-deploy              : Query the status of a software deployment, requires --update and --servers\n \
-  restart                    : Restart a service on all servers of a server group \n \
-  rollback                   : Rollback a software deployment\n \
-  status-rollback            : Query the status of a software deployment rollback\n \
-  list-server-groups         : Display a list of all defined server groups. If an update file is listed \n \
-                               in addition, it shows whether an update has been applied for that group. \n \
-  list-server-group-members  : Show all servers represented by a server group \n \
-  check-missing              : Display a list of all servers which don't have an update installed \n \
-  pkgdb-source               : Re-read the package status of a given host into the package database")
+p.add_argument("command")
+p.add_argument("command-option", nargs="?", default="unset")
 
+args = p.parse_args()
 
-opt, args = op.parse_args()
+if args.command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart", "list-server-group-members"):
+    if not args.serverlist:
+        p.error("You need to provide a server list (-s)")
+    if args.serverlist not in conf.server_groups.keys():
+        p.error("Invalid server group. It needs to be defined in /etc/debdeploy.conf")
 
-if len (args) == 0 or len (args) > 1:
-    op.print_help()
-    sys.exit(1)
+if args.command in ("deploy", "status-deploy", "rollback", "status-rollback"):
+    if not args.updatefile:
+        p.error("You need to provide an update file (-u)")
 
-command = args[0]
+if args.command in ("restart"):
+    if not args.program:
+        p.error("You need to provide a program to restart (-p)")
 
-if command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart", "list-server-group-members"):
-    if not opt.serverlist:
-        op.error("You need to provide a server list (-s)")
-    if opt.serverlist not in conf.server_groups.keys():
-        op.error("Invalid server group. It needs to be defined in /etc/debdeploy.conf")
+if args.command in ("pkgdb-source"):
+    if not args.host:
+        p.error("You need to provide a hostname (-h)")
 
-if command in ("deploy", "status-deploy", "rollback", "status-rollback"):
-    if not opt.updatefile:
-        op.error("You need to provide an update file (-u)")
+if args.command == "deploy":
+    update = DebDeployUpdateSpec(args.updatefile, conf.supported_distros)
+    deploy_update(update.source, update.update_type, conf.server_groups[args.serverlist], args.updatefile, args.serverlist)
 
-if command in ("restart"):
-    if not opt.program:
-        op.error("You need to provide a program to restart (-p)")
+elif args.command == "restart":
+    restart(conf.server_groups[args.serverlist], args.program)
 
-if command in ("pkgdb-source"):
-    if not opt.host:
-        op.error("You need to provide a hostname (-h)")
-
-if command == "deploy":
-    update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
-    deploy_update(update.source, update.update_type, conf.server_groups[opt.serverlist], opt.updatefile, opt.serverlist)
-
-elif command == "restart":
-    restart(conf.server_groups[opt.serverlist], opt.program)
-
-elif command == "status-deploy":
+elif args.command == "status-deploy":
     display_status()
 
-elif command == "status-rollback":
+elif args.command == "status-rollback":
     display_status(rollback_mode=True)
 
-elif command == "rollback":
-    rollback(opt.serverlist, opt.updatefile)
+elif args.command == "rollback":
+    rollback(args.serverlist, args.updatefile)
 
-elif command == "list-server-group-members":
-    list_server_group_members(opt.serverlist)
+elif args.command == "list-server-group-members":
+    list_server_group_members(args.serverlist)
 
-elif command == "list-server-groups":
-    if opt.updatefile:
-        list_server_groups(opt.updatefile)
+elif args.command == "list-server-groups":
+    if args.updatefile:
+        list_server_groups(args.updatefile)
     else:
         list_server_groups()
 
