@@ -15,6 +15,7 @@ debdeploy (0.0.10-1) jessie-wikimedia; urgency=medium
   * Fix traceback in error message if update is deployed twice
   * Allow blacklisting of legacy packages, see chapter "Dealing with
     legacy binary packages" in readme.txt
+  * Fixed handling of YAML files explicitly omitting a distro release
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 20 Nov 2015 12:50:01 +0100
 

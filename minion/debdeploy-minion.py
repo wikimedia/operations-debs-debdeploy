@@ -202,7 +202,7 @@ def deploy(source, update_type, versions, **kwargs):
     blacklisted_packages = []
 
     installed_distro = grains['oscodename']
-    if not versions.has_key(installed_distro):
+    if versions.get(installed_distro, None) == None:
         log.info("Update doesn't apply to the installed distribution (" + installed_distro + ")")
         return {}
 

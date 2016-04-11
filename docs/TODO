@@ -1,6 +1,6 @@
 
 Bugs:
-- Double-checking pinning to a specific version to update to (on precise)
+
 
 Refinements to existing functionality:
 - Bash completion for commands and options
