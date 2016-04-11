@@ -438,48 +438,48 @@ p.add_argument("-p", "--program", action="append", type=str, dest="program", hel
 p.add_argument("command")
 p.add_argument("command-option", nargs="?", default="unset")
 
-args = p.parse_args()
+opt = p.parse_args()
 
-if args.command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart", "list-server-group-members"):
-    if not args.serverlist:
+if opt.command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart", "list-server-group-members"):
+    if not opt.serverlist:
         p.error("You need to provide a server list (-s)")
-    if args.serverlist not in conf.server_groups.keys():
+    if opt.serverlist not in conf.server_groups.keys():
         p.error("Invalid server group. It needs to be defined in /etc/debdeploy.conf")
 
-if args.command in ("deploy", "status-deploy", "rollback", "status-rollback"):
-    if not args.updatefile:
+if opt.command in ("deploy", "status-deploy", "rollback", "status-rollback"):
+    if not opt.updatefile:
         p.error("You need to provide an update file (-u)")
 
-if args.command in ("restart"):
-    if not args.program:
+if opt.command in ("restart"):
+    if not opt.program:
         p.error("You need to provide a program to restart (-p)")
 
-if args.command in ("pkgdb-source"):
-    if not args.host:
+if opt.command in ("pkgdb-source"):
+    if not opt.host:
         p.error("You need to provide a hostname (-h)")
 
-if args.command == "deploy":
-    update = DebDeployUpdateSpec(args.updatefile, conf.supported_distros)
-    deploy_update(update.source, update.update_type, conf.server_groups[args.serverlist], args.updatefile, args.serverlist)
+if opt.command == "deploy":
+    update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
+    deploy_update(update.source, update.update_type, conf.server_groups[opt.serverlist], opt.updatefile, opt.serverlist)
 
-elif args.command == "restart":
-    restart(conf.server_groups[args.serverlist], args.program)
+elif opt.command == "restart":
+    restart(conf.server_groups[opt.serverlist], opt.program)
 
-elif args.command == "status-deploy":
+elif opt.command == "status-deploy":
     display_status()
 
-elif args.command == "status-rollback":
+elif opt.command == "status-rollback":
     display_status(rollback_mode=True)
 
-elif args.command == "rollback":
-    rollback(args.serverlist, args.updatefile)
+elif opt.command == "rollback":
+    rollback(opt.serverlist, opt.updatefile)
 
-elif args.command == "list-server-group-members":
-    list_server_group_members(args.serverlist)
+elif opt.command == "list-server-group-members":
+    list_server_group_members(opt.serverlist)
 
-elif args.command == "list-server-groups":
-    if args.updatefile:
-        list_server_groups(args.updatefile)
+elif opt.command == "list-server-groups":
+    if opt.updatefile:
+        list_server_groups(opt.updatefile)
     else:
         list_server_groups()
 
