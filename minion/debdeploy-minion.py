@@ -6,6 +6,7 @@ Module for deploying DEB packages on wide scale
 import logging, pickle, subprocess, os, re
 import logging.handlers
 
+import ConfigParser
 import salt.utils
 import salt.config
 import salt.loader
@@ -198,11 +199,21 @@ def deploy(source, update_type, versions, **kwargs):
 
     pending_restarts_pre = set()
     pending_restarts_post = set()
+    blacklisted_packages = []
 
     installed_distro = grains['oscodename']
     if not versions.has_key(installed_distro):
         log.info("Update doesn't apply to the installed distribution (" + installed_distro + ")")
         return {}
+
+    if os.path.exists("/etc/debdeploy-minion.conf"):
+        config = ConfigParser.ConfigParser()
+        config.read("/etc/debdeploy-minion.conf")
+
+        if config.has_section("blacklist-" + installed_distro):
+            if config.has_option("blacklist-" + installed_distro, source):
+                blacklisted_packages = [x.strip() for x in config.get("blacklist-" + installed_distro, source).split(",")]
+    log.info("Packages blacklisted for upgrades: " + str(blacklisted_packages))
 
     # Detect all locally installed binary packages of a given source package
     # The only resource we can use for that is parsing the /var/lib/dpkg/status
@@ -217,6 +228,10 @@ def deploy(source, update_type, versions, **kwargs):
         # outdated binary package names)
         installation_status = pkg['Status'].split()[0]
         if installation_status == "deinstall":
+            continue
+
+        if pkg.has_key('Package') and pkg.get('Package') in blacklisted_packages:
+            log.info('Package ' + pkg.get('Package') + ' has been blacklisted for installation')
             continue
 
         # Source packages which have had a binNMU have a Source: entry with the source

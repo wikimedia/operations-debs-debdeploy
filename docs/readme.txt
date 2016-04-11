@@ -218,8 +218,33 @@ puppet-jmm-salt-client01.puppet.eqiad.wmflabs:
 -----------------
 
 
+Dealing with legacy binary packages
+-----------------------------------
 
+debdeploy operates on source packages. When an update is deployed
+all currently installed binary packages are queried. If a system
+has been upgraded from an earlier release and if some outdated
+binary packages are still around, upgrades may fail with the error
+message:
+"The version to be installed could not be found. It might have been
+superceded by a more recent version or the apt source is incomplete"
 
+This happens since debdeploy explicitly specifies the version to
+upgrade to, but for those outdated binaries thet version is not
+available. An example:
+
+You're trying to upgrade the bind9 source package. In Debian wheezy
+the binary package name for the ISC DNS shared library is libdns88,
+while in Debian jessie, the package name is libdns100. If you are
+trying to upgrade bind9 on a jessie system which still has libdns88
+installed you, the minion will detect that libdns88 is from the bind9
+source package and try to upgrade to the version specified in the YAML
+file (which doesn't exist on jessie any longer).
+
+It's recommended to prune those outdated binary packages after
+distribution upgrades. Alternatively you can add a local blacklist
+by adding a config file /etc/debdeploy-minion.conf. It contains
+a blacklist of binary packages, see the shipped example file.
 
 
 
