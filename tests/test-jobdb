@@ -59,6 +59,15 @@ fixes:
         self.assertEqual(self.joblogdb.has_been_rolled_back(self.yamlfile, "testsystem"), True)
         self.assertEqual(self.joblogdb.get_rollbackid(self.yamlfile, "testsystem"), "20150519122347248000")
 
+        self.joblogdb.add_job(self.yamlfile, "testsystem2", "20150519122347247890")
+        self.joblogdb.add_job(self.yamlfile, "testsystem3", "20150519122347247891")
+        self.joblogdb.add_job(self.yamlfile, "testsystem4", "20150519122347247892")
+        self.joblogdb.add_job(self.yamlfile, "testsystem5", "20150519122347247893")
+
+        self.assertEqual(len(self.joblogdb.get_jobs()), 5)
+        self.assertEqual(len(self.joblogdb.get_jobs(2)), 2)
+        self.assertEqual(self.joblogdb.get_jobs(1)[0][1], "testsystem5")
+
 if __name__ == '__main__':
     unittest.main()
 

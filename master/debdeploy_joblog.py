@@ -63,6 +63,32 @@ class DebDeployJobLog(object):
             else:
                 return False
 
+
+    def get_jobs(self, jobrange=0):
+        '''
+        This function returns a list all jobs.
+
+        jobrange = returns only the last x commands (can be specified as a positive or negative number). If 0 is
+                   passed or if left out, all jobs are returned
+        '''
+        conn = sqlite3.connect(self.sqlite_dbfilename)
+
+        if jobrange == 0:
+            with conn:
+                r = conn.execute("SELECT * FROM updates").fetchall()
+
+                if not r:
+                    return None
+
+                return r
+        else:
+            with conn:
+                r = conn.execute("SELECT * FROM updates order by jobid desc limit ?", (abs(jobrange),)).fetchall()
+                if not r:
+                    return None
+
+                return r
+
     def get_jobid(self, yamlfile, servergroup):
         '''
         This function returns the ID of a deployed software update. Returns None for
