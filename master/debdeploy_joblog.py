@@ -48,6 +48,20 @@ class DebDeployJobLog(object):
             else:
                 return False
 
+    def does_jobid_exist(self, jobid):
+        '''
+        This boolean function returns whether a job ID exists.
+
+        jobid = job ID in debdeploy job database (string)
+        '''
+        conn = sqlite3.connect(self.sqlite_dbfilename)
+        with conn:
+            r = conn.execute("SELECT * FROM updates WHERE jobid=?", (jobid,)).fetchall()
+            if len(r) > 0:
+                return True
+            else:
+                return False
+
     def has_been_rolled_back(self, yamlfile, servergroup):
         '''
         This boolean function returns whether a deployed software update has been rolled back.

@@ -41,6 +41,7 @@ def display_status(rollback_mode=False):
     install_errors = []
     restart_cnt = {}
     new_restart_cnt = {}
+    jid = ""
 
     if rollback_mode:
         if not joblogdb.does_job_exist(opt.updatefile, opt.serverlist):
@@ -51,14 +52,29 @@ def display_status(rollback_mode=False):
             print opt.updatefile, "hasn't been rolled-back yet for this server group (", opt.serverlist, ")"
             sys.exit(0)
     else:
-        if not joblogdb.does_job_exist(opt.updatefile, opt.serverlist):
-            print opt.updatefile, "hasn't been deployed yet for this server group (", opt.serverlist, ")"
-            sys.exit(0)
+        # Job was specified by job ID (or relative job ID, e.g. -3 for the third-last job)
+        if opt.command_option:
+            if opt.command_option.strip().lstrip("-").isdigit():
+                j = int(opt.command_option)
+                if j > 0:
+                    if joblogdb.does_jobid_exist(opt.command_option):
+                        jid = opt.command_option
+                elif j < 0:
+                    jid = joblogdb.get_jobs(abs(j))[abs(j)-1][2]
+                else:
+                    print "Invalid jobid"
+                    sys.exit(1)
 
-    if rollback_mode:
-        jid = joblogdb.get_rollbackid(opt.updatefile, opt.serverlist)
-    else:
-        jid = joblogdb.get_jobid(opt.updatefile, opt.serverlist)
+        # Job was specified by servergroup and update file
+        else:
+            if not joblogdb.does_job_exist(opt.updatefile, opt.serverlist):
+                print opt.updatefile, "hasn't been deployed yet for this server group (", opt.serverlist, ")"
+                sys.exit(1)
+
+            if rollback_mode:
+                jid = joblogdb.get_rollbackid(opt.updatefile, opt.serverlist)
+            else:
+                jid = joblogdb.get_jobid(opt.updatefile, opt.serverlist)
 
     # SaltRunner always emits its status on stdout, https://github.com/saltstack/salt/issues/21392
     # Can be dropped once fixed upstream
@@ -436,18 +452,28 @@ p.add_argument("--verbose", action="store_true", dest="verbose", help="Enable ve
 p.add_argument("-p", "--program", action="append", type=str, dest="program", help="The program(s) to restart on a server group")
 
 p.add_argument("command")
-p.add_argument("command-option", nargs="?", default="unset")
+p.add_argument("command_option", nargs="?", default="unset")
 
 opt = p.parse_args()
 
-if opt.command in ("deploy", "status-deploy", "rollback", "status-rollback", "restart", "list-server-group-members"):
+if opt.command in ("deploy", "rollback", "restart", "list-server-group-members"):
     if not opt.serverlist:
         p.error("You need to provide a server list (-s)")
     if opt.serverlist not in conf.server_groups.keys():
         p.error("Invalid server group. It needs to be defined in /etc/debdeploy.conf")
 
-if opt.command in ("deploy", "status-deploy", "rollback", "status-rollback"):
+if opt.command in ("status-deploy", "status-rollback"):
+    if not opt.command_option and not opt.serverlist:
+        p.error("You need to provide a server list (-s)")
+        if opt.serverlist not in conf.server_groups.keys():
+            p.error("Invalid server group. It needs to be defined in /etc/debdeploy.conf")
+
+if opt.command in ("deploy", "rollback"):
     if not opt.updatefile:
+        p.error("You need to provide an update file (-u)")
+
+if opt.command in ("status-deploy", "status-rollback"):
+    if not opt.command_option and not opt.updatefile:
         p.error("You need to provide an update file (-u)")
 
 if opt.command in ("restart"):
