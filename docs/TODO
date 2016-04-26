@@ -1,11 +1,10 @@
 
 Bugs:
-
+- None so far
 
 Refinements to existing functionality:
 - Bash completion for commands and options
 - Provide logrotate configs
-- Provide git-style status view of deployments ("debdeploy status-deploy -1")
 - Silence the restart false positive for the salt minion itself
 - Add a git-style internal pager for commands with a lot of terminal output
 - Make the black list in the restart detection code configurable and blacklist
@@ -15,6 +14,8 @@ Refinements to existing functionality:
   run
 
 New feature work:
+- Add an internal list of patched packages and emit a warning if a spec file
+  is generated for those
 - Implement a function to list of reverse dependencies of a package (to give
   an estimate what a package is used for on a server group)
 - Central package database to easily search for affected binary packages
