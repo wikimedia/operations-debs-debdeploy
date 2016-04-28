@@ -60,7 +60,11 @@ def display_status(rollback_mode=False):
                     if joblogdb.does_jobid_exist(opt.command_option):
                         jid = opt.command_option
                 elif j < 0:
-                    jid = joblogdb.get_jobs(abs(j))[abs(j)-1][2]
+                    try:
+                        jid = joblogdb.get_jobs(abs(j))[abs(j)-1][2]
+                    except IndexError:
+                        print "Invalid job query"
+                        sys.exit(1)
                 else:
                     print "Invalid jobid"
                     sys.exit(1)
@@ -291,6 +295,10 @@ def deploy_update(source, update_type, grains, update_file, servergroup):
     joblogdb.add_job(update_file, servergroup, jid)
 
 
+def list_jobs():
+    for i in joblogdb.get_jobs():
+        print i[2], ":", i[0], "applied on", i[1]
+
 def restart(grains, processes):
     '''
     Trigger process restarts for a set of servers
@@ -493,6 +501,9 @@ elif opt.command == "restart":
 
 elif opt.command == "status-deploy":
     display_status()
+
+elif opt.command == "list-jobs":
+    list_jobs()
 
 elif opt.command == "status-rollback":
     display_status(rollback_mode=True)
