@@ -16,11 +16,29 @@ if conf.debug:
 else:
     logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log', format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s', level=logging.INFO)
 
-import salt
+import salt, pydoc
 from salt.scripts import salt_run
 from debdeploy_joblog import *
 from debdeploy_updatespec import *
 #from debdeploy_pkgdb import *
+
+class logpager:
+    threshold = 20 # if pager buffer contains more than <threshold> lines, use the pager
+    def __init__(self):
+        self.buf = ""
+    def add(self, *args):
+        for i in args:
+            self.buf += str(i)
+        self.buf += "\n"
+    def add_nb(self, *args):
+        for i in args:
+            self.buf += str(i)
+    def show(self):
+        if self.buf.count("\n") > self.threshold:
+            pydoc.pager(self.buf)
+        else:
+            print self.buf
+
 
 def display_status(rollback_mode=False):
     '''
@@ -97,6 +115,7 @@ def display_status(rollback_mode=False):
         sys.exit(0)
 
     amount_of_hosts += len(res.keys())
+    p = logpager()
 
     for host in res:
 
@@ -121,9 +140,9 @@ def display_status(rollback_mode=False):
         if res[host]['return'].has_key('new_restart'):
             new_restart = res[host]['return']['new_restart']
 
-        print host + ":"
+        p.add(host, ":")
         if added:
-            print "  Added packages:", host['return']['additions']
+            p.add("  Added packages:", host['return']['additions'])
             for added_pkg in host['return']['additions']:
                 if not add_cnt.get(added_pkg, None):
                     add_cnt[added_pkg] = 1
@@ -131,7 +150,7 @@ def display_status(rollback_mode=False):
                     add_cnt[added_pkg] += 1
 
         elif removed:
-            print "  Removed packages:", host['return']['removals']
+            p.add("  Removed packages:", host['return']['removals'])
             for removed_pkg in host['return']['removals']:
                 if not remove_cnt.get(removed_pkg, None):
                     remove_cnt[removed_pkg] = 1
@@ -139,9 +158,9 @@ def display_status(rollback_mode=False):
                     remove_cnt[removed_pkg] += 1
 
         elif updated and len(updated.keys()) > 0:
-            print "  Updated packages:"
+            p.add("  Updated packages:")
             for k in updated:
-                print "    " + k + ": " + updated[k][0] + " -> " + updated[k][1]
+                p.add("    " + k + ": " + updated[k][0] + " -> " + updated[k][1])
 
                 updated_idx = k + ": " + updated[k][0] + " -> " + updated[k][1]
                 if not update_cnt.get(updated_idx, None):
@@ -150,7 +169,7 @@ def display_status(rollback_mode=False):
                     update_cnt[updated_idx] += 1
 
         else:
-            print "  No change"
+            p.add("  No change")
 
 
         if restart:
@@ -187,71 +206,72 @@ def display_status(rollback_mode=False):
                 install_errors.append(host + ": Unknown installation error")
 
         if opt.verbose:
-            print
+            p.add("")
             if res[host]['return'].has_key('aptlog'):
                 indented = ['  ' + l for l in res[host]['return']['aptlog'].splitlines()]
-                print "\n".join(indented)
+                p.add("\n".join(indented))
 
-    print 
-    print 
+    p.add("") 
+    p.add("") 
     if rollback_mode:
-        print "Rollback summary:"
-        print "Number of hosts in this rollback run:", amount_of_hosts
+        p.add("Rollback summary:")
+        p.add("Number of hosts in this rollback run:", amount_of_hosts)
     else:
-        print "Deployment summary:"
-        print "Number of hosts in this deployment run:", amount_of_hosts
+        p.add("Deployment summary:")
+        p.add("Number of hosts in this deployment run:", amount_of_hosts)
 
 
     if len(add_cnt.keys()) == 0:
-        print "No packages were added"
+        p.add("No packages were added")
     else:
-        print "Added packages:"
+        p.add("Added packages:")
         for pkg in add_cnt:
-            print pkg, "on", add_cnt[pkg], "hosts"
+            p.add(pkg, "on", add_cnt[pkg], "hosts")
 
     if len(remove_cnt.keys()) == 0:
-        print "No packages were removed"
+        p.add("No packages were removed")
     else:
-        print "Removed packages:"
+        p.add("Removed packages:")
         for pkg in remove_cnt:
-            print pkg, "on", remove_cnt[pkg], "hosts"
+            p.add(pkg, "on", remove_cnt[pkg], "hosts")
 
     if len(update_cnt.keys()) == 0:
-        print "No packages were updated"
+        p.add("No packages were updated")
     else:
-        print "Updated packages:"
+        p.add("Updated packages:")
         for pkg in sorted(update_cnt.keys()):
-            print pkg, "on", update_cnt[pkg], "hosts"
+            p.add(pkg, "on", update_cnt[pkg], "hosts")
 
-    print
+    p.add("")
 
     if len(restart_cnt.keys()) == 0:
-        print "No restarts are needed"
+        p.add("No restarts are needed")
     else:
-        print "Restarts needed:"
+        p.add("Restarts needed:")
         for process in sorted(restart_cnt.keys()):
-            print process, "on", len(restart_cnt[process]), "hosts:"
-            print "  ",
+            p.add(process, "on", len(restart_cnt[process]), "hosts:")
+            p.add_nb("  ")
             for i in restart_cnt[process]:
-                print i,
-            print
-        print
-        print "New restarts needed:"
+                p.add_nb(i)
+            p.add("")
+        p.add("")
+        p.add("New restarts needed:")
         for process in sorted(new_restart_cnt.keys()):
-            print process, "on", len(new_restart_cnt[process]), "hosts:"
-            print "  ",
+            p.add(process, "on", len(new_restart_cnt[process]), "hosts:")
+            p.add_nb("  ")
             for i in new_restart_cnt[process]:
-                print i,
-            print
+                p.add_nb(i)
+            p.add("")
 
-    print
-    print "Error summary:"
+    p.add("")
+    p.add("Error summary:")
 
     if len(install_errors) == 0:
-        print "No errors found"
+        p.add("No errors found")
     else:
         for i in install_errors:
-            print i
+            p.add(i)
+    p.show()
 
 def deploy_update(source, update_type, grains, update_file, servergroup):
     '''
@@ -369,9 +389,11 @@ def list_server_groups(update=None):
                   has already been deployed for that group.
     '''
 
+    p = logpager()
+
     if not update:
         for servergroup in sorted(conf.server_groups):
-            print servergroup
+            p.add(servergroup)
     else:
         done_list = []
         missing_list = []
@@ -385,14 +407,15 @@ def list_server_groups(update=None):
             else:
                 missing_list.append(servergroup)
 
-        print update, "has been applied to these server groups:"
+        p.add(update, "has been applied to these server groups:")
         for i in sorted(done_list):
-            print i
+            p.add(i)
 
-        print
-        print update, "hasn't been applied to these server groups:"
+        p.add("")
+        p.add(update, "hasn't been applied to these server groups:")
         for i in sorted(missing_list):
-            print i
+            p.add(i)
+    p.show()
 
 def list_server_group_members(server_group):
     '''
@@ -401,10 +424,11 @@ def list_server_group_members(server_group):
     server_group        : The name of a server group (as defined in /etc/debdeploy.conf)
     '''
 
-    print "Server group", server_group, ":"
+    p = logpager()
+    p.add("Server group", server_group, ":")
     members = client.cmd('*', 'match.grain', conf.server_groups[server_group])
     for i in sorted(members):
-        print i
+        p.add(i)
 
 def rollback(servergroup, update_file):
     '''

@@ -6,7 +6,6 @@ Refinements to existing functionality:
 - Bash completion for commands and options
 - Provide logrotate configs
 - Silence the restart false positive for the salt minion itself
-- Add a git-style internal pager for commands with a lot of terminal output
 - Make the black list in the restart detection code configurable and blacklist
   /var/spool/kafka and /var/lib/elasticsearch in our internal setup
 - puppet triggers a run every 30 mins, sometimes updates clash with that, the
