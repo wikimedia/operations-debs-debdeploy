@@ -1,6 +1,7 @@
 
 Bugs:
-- None so far
+- On a jessie system, if an update ships a new version of a conffile and the
+  conffile has been locally modified, dpkg can hang
 
 Refinements to existing functionality:
 - Bash completion for commands and options
