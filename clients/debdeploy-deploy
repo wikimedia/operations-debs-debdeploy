@@ -1,0 +1,273 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+'''
+Module for deploying DEB packages on wide scale
+'''
+
+import logging
+import pickle
+import subprocess
+import os
+import re
+import platform
+import sys
+import argparse
+import json
+import ConfigParser
+from logging.handlers import RotatingFileHandler
+from debian import deb822
+
+logger = logging.getLogger('debdeploy')
+
+
+def parse_args():
+    p = argparse.ArgumentParser(
+        description='debdeploy-deploy - Deploy a software update')
+    p.add_argument('--run-apt-update', action='store_true', default=False,
+                   help='If enabled, run apt-get update during deployments')
+    p.add_argument('--verbose', action='store_true', default=False,
+                   help='Include full output of apt')
+    p.add_argument('--console', action='store_true', default=False,
+                   help='Enable additional console output')
+    p.add_argument('--json', action='store_true', default=False,
+                   help='Return a JSONIf enabled, run apt-get update during deployments')
+    p.add_argument('--source', action='store', required=True,
+                   help='The name of the source package to be updated')
+    p.add_argument('--updatespec', action='store', nargs='+', required=True)
+
+    args = p.parse_args(sys.argv[1:])
+
+    for i in args.updatespec:
+        if len(i.split("_")) != 3:
+            p.error("Malformed update spec: " + i)
+
+    return args
+
+
+def setup_logger(verbose=False, console_output=False):
+    log_file = "/var/log/debdeploy/updates.log"
+
+    log_path = os.path.dirname(log_file)
+    if not os.path.exists(log_path):
+        os.makedirs(log_path, 0770)
+
+    log_formatter = logging.Formatter(fmt='%(asctime)s (%(levelname)s) %(message)s')
+    log_handler = RotatingFileHandler(log_file, maxBytes=(5 * (1024**2)), backupCount=30)
+    log_handler.setFormatter(log_formatter)
+    logger.addHandler(log_handler)
+    logger.raiseExceptions = False
+
+    if console_output:
+        console = logging.StreamHandler()
+        logging.getLogger('debdeploy').addHandler(console)
+
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+
+
+def get_os_version():
+    os_id = ""
+    os_version = "undef"  # Usually not used, but can be used to track unstable
+
+    try:
+        with open('/etc/os-release', 'r') as data:
+            for i in data.readlines():
+                if i.startswith("ID"):
+                    os_id = i.split("=")[1].strip().replace('"', "").replace("\n", "")
+                if i.startswith("VERSION_ID"):
+                    os_version = i.split("=")[1].strip().replace('"', "").replace("\n", "")
+    except IOError:
+        logger.info("Could not open /etc/os-release")
+        return "invalid"
+
+    if not os_id:
+        logger.info("Failed to parse OS release, no distro ID specified")
+        return "invalid"
+
+    return os_id + "_" + os_version
+
+
+def get_installed_binary_packages(source):
+    # Detect all locally installed binary packages of a given source package
+    # The only resource we can use for that is parsing the /var/lib/dpkg/status
+    # file. The format is a bit erratic: The Source: line is only present for
+    # binary packages not having the same name as the binary package
+    installed_binary_packages = []
+    for pkg in deb822.Packages.iter_paragraphs(file('/var/lib/dpkg/status')):
+
+        # skip packages in deinstalled status ("rc" in dpkg). These are irrelevant for
+        # upgrades and cause problems when binary package names have changed (since
+        # package installations are forced with a specific version which is not available
+        # for those outdated binary package names)
+        installation_status = pkg['Status'].split()[0]
+        if installation_status == "deinstall":
+            continue
+
+        # Source packages which have had a binNMU have a Source: entry with the source
+        # package version in brackets, so strip these
+        # If no Source: entry is present in /var/lib/dpkg/status, then the source package
+        # name is identical to the binary package name
+        if 'Source' in pkg and re.sub(r'\(.*?\)', '', pkg['Source']).strip() == source:
+            installed_binary_packages.append(pkg['Package'])
+        elif 'Package' in pkg and pkg['Package'] == source:
+            installed_binary_packages.append(pkg['Package'])
+
+    return installed_binary_packages
+
+
+def list_pkgs():
+    '''
+    This function returns a dictionary of installed Debian packages and their
+    respective installed version (keyed by the package name).
+
+    It is mostly used to determine whether packages were updated, installed or removed.
+    '''
+
+    pkgs = {}
+
+    try:
+        osarch = subprocess.check_output(["dpkg", "--print-architecture"])
+    except subprocess.CalledProcessError as e:
+        logger.info("Could not determine host architecture", e.returncode)
+        sys.exit(1)
+    try:
+        installed_packages = subprocess.check_output(
+            ["dpkg-query",
+             "--showformat='${Status} ${Package} ${Version} ${Architecture}\n'", "-W"])
+    except subprocess.CalledProcessError as e:
+        logger.info("Could not determine list of installed packages", e.returncode)
+        sys.exit(1)
+
+    for line in installed_packages.splitlines():
+        cols = line.split()
+        try:
+            if len(cols) == 6:
+                linetype, status, name, version_num, arch = \
+                    [cols[x] for x in (0, 2, 3, 4, 5)]
+        except ValueError:
+            continue
+
+        if arch != 'all' and osarch == 'amd64' and osarch != arch:
+            name += ':{0}'.format(arch)
+        if ('install' in linetype or 'hold' in linetype) and 'installed' in status:
+            pkgs[name] = version_num
+
+    return pkgs
+
+
+def install_pkgs(binary_packages, version_num, downgrade=False):
+    '''
+    Installs software updates via apt
+
+    binary_packages: A list of Debian binary package names to update (list of tuples)
+    downgrade: If enabled, version downgrades are allowed (required for rollbacks
+    to earlier versions)
+
+    Returns a tuple of the apt exit code and the output of the installation process
+
+    '''
+
+    targets = []
+    for pkg in binary_packages:
+        if version_num is None:
+            targets.append(pkg)
+        else:
+            targets.append('{0}={1}'.format(pkg, version_num.lstrip('=')))
+
+    cmd = ['apt-get', '-q', '-y']
+    if downgrade:
+        cmd.append('--force-yes')
+    cmd = cmd + ['-o', 'DPkg::Options::=--force-confold']
+    cmd = cmd + ['-o', 'DPkg::Options::=--force-confdef']
+    cmd.append('install')
+    cmd.extend(targets)
+
+    logger.debug("apt invocation: ", cmd)
+
+    try:
+        update = (0, subprocess.check_output(cmd, stderr=subprocess.STDOUT))
+    except subprocess.CalledProcessError as e:
+        update = (e.returncode, e.output)
+
+    return update
+
+
+def result(status, updated_packages, log, json_output):
+    '''
+    Generates a data set to return to Cumin.
+    status: OK | ERROR: foo
+    updated_packages: dictionary sorted by binary package names with the
+        previous and the new version
+    log: the complete apt log
+    '''
+
+    if json_output:
+        return json.dumps([status, updated_packages, log])
+    else:
+        return [status, updated_packages, log]
+
+
+def main():
+    '''
+    Updates all installed binary packages of the source package
+    to the specified version.
+    '''
+    args = parse_args()
+
+    setup_logger(False, args.console)
+
+    versions = {}
+    for i in args.updatespec:
+        versions[i.split("_")[0] + "_" + i.split("_")[1]] = i.split("_")[2]
+
+    installed_distro = get_os_version()
+    if installed_distro == "invalid":
+        return result("ERROR: Could not parse installed distros", {}, "", args.json)
+
+    if versions.get(installed_distro, None) is None:
+        logger.info("Update doesn't apply to the installed distribution (" + str(installed_distro))
+        return result("OK", {}, "", args.json)
+
+    installed_binary_packages = get_installed_binary_packages(args.source)
+    logger.debug("Installed binary packages for " + args.source +
+                 ": " + str(installed_binary_packages))
+
+    if len(installed_binary_packages) == 0:
+        logger.info("No binary packages installed for source package " + args.source)
+        return result("OK", {}, "", args.json)
+
+    if args.run_apt_update:
+        try:
+            subprocess.call(["apt-get", "update"])
+        except subprocess.CalledProcessError as e:
+            logger.info("apt-get update failed: ", e.returncode)
+
+    old = list_pkgs()
+    apt_output = install_pkgs(installed_binary_packages, versions.get(installed_distro, None))
+
+    new = list_pkgs()
+
+    old_keys = set(old.keys())
+    new_keys = set(new.keys())
+
+    updated = []
+
+    intersect = old_keys.intersection(new_keys)
+    modified = {x: (old[x], new[x]) for x in intersect if old[x] != new[x]}
+
+    logger.info("Modified packages: " + str(modified))
+
+    if args.verbose:
+        return result("OK", modified, apt_output, args.json)
+    else:
+        return result("OK", modified, "", args.json)
+
+
+if __name__ == '__main__':
+    print main()
+
+# Local variables:
+# mode: python
+# End:

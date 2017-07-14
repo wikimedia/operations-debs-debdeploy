@@ -1,3 +1,30 @@
+debdeploy (0.0.99-1) UNRELEASED; urgency=medium
+
+  * Migrate away from Salt towards Cumin and clean out some code
+    which turned out to be useful on paper, but not so useful
+    in practice
+  * Remove feature to trigger restarts based on the program name,
+    worked in general, but it's a saner choice to require the
+    service name (especially since all distros are converging to
+    systemd anyway) and it avoids dealing with a lot of special
+    cases. Anyone managing service restarts should be expected
+    to know the service name anyway.
+  * Remove feature to deploy and remove software, such tasks should
+    be handled by puppet or a similar system configuration tool.
+    This was part of the initial debdeploy releases, but was never
+    used in practice, so removing it.
+  * Restart detection after a library update is now decoupled from
+    the deployment process. This simplifies the deployment of staged
+    rollouts a lot (e.g. if two libraries are updated which are linked
+    by HHVM and if the deployed combines the HHVM restart for both
+    updates)
+  * In the clients operate on ID and VERSION_ID only, previous we used
+    the Debian code name populated by Salt. The YAML files still
+    address code names, that'll be parsed from a config file so that
+    supporting a new release only needs to be enabled on the server
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 07 Jul 2017 13:49:03 +0200
+
 debdeploy (0.0.10-1) jessie-wikimedia; urgency=medium
 
   * Fix a traceback in status display
