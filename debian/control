@@ -22,3 +22,9 @@ Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: central package management (master)
  central package management (common files)
+
+Package: debdeploy-client
+Architecture: all
+Depends: lsof, python-debian, ${misc:Depends}
+Description: Debdeploy central package management (client)
+ This is the client package of Debdeploy.

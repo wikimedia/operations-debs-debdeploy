@@ -22,6 +22,9 @@ debdeploy (0.0.99-1) UNRELEASED; urgency=medium
     the Debian code name populated by Salt. The YAML files still
     address code names, that'll be parsed from a config file so that
     supporting a new release only needs to be enabled on the server
+  * Create a new package debdeploy-client for the Cumin-based client
+    which is co-installable with the Salt minion (still needed for
+    a transition period)
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 07 Jul 2017 13:49:03 +0200
 
