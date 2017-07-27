@@ -1,0 +1,142 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+'''
+Module for listing necessary service restarts after library updates
+'''
+
+import logging
+import pickle
+import subprocess
+import os
+import re
+import platform
+import sys
+import argparse
+import json
+import ConfigParser
+from logging.handlers import RotatingFileHandler
+from debian import deb822
+
+logger = logging.getLogger('debdeploy')
+
+
+def parse_args():
+    p = argparse.ArgumentParser(
+        description='debdeploy-deploy - Deploy a software update')
+    p.add_argument('--console', action='store_true', default=False,
+                   help='Enable additional console output')
+    p.add_argument('--json', action='store_true', default=False,
+                   help='Return results as JSON')
+    p.add_argument('--soname', action='store', nargs='+', required=True)
+
+    args = p.parse_args(sys.argv[1:])
+
+    return args
+
+
+def setup_logger(verbose=False, console_output=False):
+    log_file = "/var/log/debdeploy/updates.log"
+
+    log_path = os.path.dirname(log_file)
+    if not os.path.exists(log_path):
+        os.makedirs(log_path, 0770)
+
+    log_formatter = logging.Formatter(fmt='%(asctime)s (%(levelname)s) %(message)s')
+    log_handler = RotatingFileHandler(log_file, maxBytes=(5 * (1024**2)), backupCount=30)
+    log_handler.setFormatter(log_formatter)
+    logger.addHandler(log_handler)
+    logger.raiseExceptions = False
+
+    if console_output:
+        console = logging.StreamHandler()
+        logging.getLogger('debdeploy').addHandler(console)
+
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+
+
+def get_deleted_files():
+    '''
+    This function returns a list open file handles, which have a reference to deleted
+    files, this usually occurs after library upgrades. The original code in debdepoy
+    was parsing /proc itself, but we now rely on parsing the lsof which is much more
+    robust since it allows to directly query deleted filed
+    '''
+
+    deleted_files = []
+    false_positives = ['/dev/zero']
+
+    try:
+        del_files = subprocess.check_output(["lsof", "+c", "15", "-nXd", "DEL"])
+    except subprocess.CalledProcessError as e:
+        logger.info("Could not determine host architecture", e.returncode)
+        sys.exit(1)
+
+    for line in del_files.splitlines():
+        cols = line.split()
+        try:
+            if len(cols) == 8:
+                command, pid, filename = [cols[x] for x in (0, 1, 7)]
+                if filename not in false_positives:
+                    deleted_files.append((command, pid, filename))
+        except ValueError:
+            continue
+
+    return deleted_files
+
+
+def result(status, restarts_needed, json_output):
+    '''
+    Generates a data set to return to Cumin.
+    status: OK | ERROR: foo
+    restarts_needed: dictionary of process names with a dictionary
+        of PIDs with a list of file references
+    '''
+
+    if json_output:
+        return json.dumps([status, restarts_needed])
+    else:
+        return [status, restarts_needed]
+
+
+def main():
+    '''
+    Updates all installed binary packages of the source package
+    to the specified version.
+    '''
+    args = parse_args()
+
+    setup_logger(False, args.console)
+
+    deleted_files = get_deleted_files()
+    restarts_needed = {}
+
+    for i in deleted_files:
+        procname, pid, fname = (i)
+        for soname in args.soname:
+            if fname.find(soname) != -1:
+                if not restarts_needed.get(procname, None):
+                    restarts_needed[procname] = {}
+
+                if not restarts_needed[procname].get(pid, None):
+                    restarts_needed[procname][pid] = []
+
+                restarts_needed[procname][pid].append(fname)
+
+    if len(restarts_needed) == 0:
+        return result("OK", "No service needs a restart", args.json)
+    else:
+        logger.info("These services need a restart:")
+        for i in restarts_needed:
+            logger.info(i + " (" + str(len(restarts_needed[i].keys())) + " processes)")
+        return result("OK", restarts_needed, args.json)
+
+
+if __name__ == '__main__':
+    print main()
+
+# Local variables:
+# mode: python
+# End:
