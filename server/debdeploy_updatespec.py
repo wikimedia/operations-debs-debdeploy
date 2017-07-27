@@ -14,6 +14,7 @@ class DebDeployUpdateSpec(object):
     comment = ""
     update_type = ""
     fixes = {}
+    libraries = []
     legit_type = ['tool', 'daemon-direct', 'daemon-disrupt', 'daemon-cluster', 'reboot', 'reboot-cluster', 'library']
 
     def __init__(self, updatespec, supported_distros):
@@ -55,15 +56,18 @@ class DebDeployUpdateSpec(object):
         if updatefile.has_key("comment"):
             self.comment = updatefile["comment"]
 
+        if updatefile.has_key("libraries"):
+            self.libraries = updatefile["libraries"]
+
         if not updatefile.has_key("fixes"):
             print "Invalid YAML file, you need to specify at least one fixed version using the 'fixes' stanza, see the annotated example file for details"
             sys.exit(1)
         else:
             for i in updatefile["fixes"]:
-                if supported_distros.count(i) >= 1:
+                if len(supported_distros.keys()) >= 1:
                     self.fixes[i] = updatefile["fixes"].get(i)
                 else:
-                    print "Invalid YAML file,", i, "is not a supported distribution. You need to activate it in /etc/debdeploy.conf"
+                    print "Invalid YAML file,", i, "is not a supported distribution. You need to activate it in /deb/debdeploy.conf"
                     sys.exit(1)
 
 # Local variables:

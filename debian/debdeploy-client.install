@@ -1,2 +1,3 @@
-client/debdeploy-deploy /usr/bin/
+clients/debdeploy-deploy /usr/bin/
+clients/debdeploy-restarts /usr/bin/
 

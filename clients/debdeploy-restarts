@@ -27,7 +27,7 @@ def parse_args():
                    help='Enable additional console output')
     p.add_argument('--json', action='store_true', default=False,
                    help='Return results as JSON')
-    p.add_argument('--soname', action='store', nargs='+', required=True)
+    p.add_argument('--libname', action='store', nargs='+', required=True)
 
     args = p.parse_args(sys.argv[1:])
 
@@ -115,8 +115,8 @@ def main():
 
     for i in deleted_files:
         procname, pid, fname = (i)
-        for soname in args.soname:
-            if fname.find(soname) != -1:
+        for libname in args.libname:
+            if fname.find(libname) != -1:
                 if not restarts_needed.get(procname, None):
                     restarts_needed[procname] = {}
 

@@ -25,6 +25,7 @@ debdeploy (0.0.99-1) UNRELEASED; urgency=medium
   * Create a new package debdeploy-client for the Cumin-based client
     which is co-installable with the Salt minion (still needed for
     a transition period)
+  * Create a new package debdeploy-server for the Cumin-based server
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 07 Jul 2017 13:49:03 +0200
 

@@ -1,0 +1,3 @@
+server/debdeploy_updatespec.py /usr/lib/python2.7/dist-packages/
+server/debdeploy_conf.py /usr/lib/python2.7/dist-packages/
+server/debdeploy.py /usr/sbin
