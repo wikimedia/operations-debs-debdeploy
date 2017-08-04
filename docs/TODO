@@ -6,9 +6,6 @@ Bugs:
 Refinements to existing functionality:
 - Bash completion for commands and options
 - Provide logrotate configs
-- Silence the restart false positive for the salt minion itself
-- Make the black list in the restart detection code configurable and blacklist
-  /var/spool/kafka and /var/lib/elasticsearch in our internal setup
 - puppet triggers a run every 30 mins, sometimes updates clash with that, the
   minion should detect a running "apt-get update" and postpone the installation
   run
@@ -18,12 +15,10 @@ New feature work:
   is generated for those
 - Implement a function to list of reverse dependencies of a package (to give
   an estimate what a package is used for on a server group)
-- Central package database to easily search for affected binary packages
 - Add a generic notification mechanism if an update has been deployed
   and create a WMF-specific IRC notification which updates "server admin log"
 - Make the logging configurable and add a WMF-specific logging method for
   Logstash
 - Implement timed restarts, which restart services not an once, but in
   steps/with delays
-- Allow referencing other server groups, e.g. "foo: @foo-canary, @foo-standard"
 - Implement timed updates (with a delay)
