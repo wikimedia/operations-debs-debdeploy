@@ -85,7 +85,7 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
 
     for distro in fixes:
         if fixes[distro]:
-            cmd += supported_distros[distro][0][0] + "_" + supported_distros[distro][0][1] + "_" + fixes[distro] + " "
+            cmd += str(supported_distros[distro][0][0]) + "_" + str(supported_distros[distro][0][1]) + "_" + str(fixes[distro]) + " "
     
     worker.target = transports.Target(hosts, batch_size=100, batch_sleep=None, logger=logging)
     worker.commands = [ cmd ]
