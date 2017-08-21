@@ -11,6 +11,7 @@ class DebDeployConfig(object):
     '''
     supported_distros = {}
     debug = False
+    library_hints = {}
 
     def __init__(self, configfile):
         config = ConfigParser.ConfigParser()
@@ -30,6 +31,12 @@ class DebDeployConfig(object):
         if len(self.supported_distros) < 1:
             print "You need to specify at least one supported distribution in /etc/debdeploy.conf"
             sys.exit(1)
+
+        if config.has_section("libraries"):
+            for library in config.options("libraries"):
+                self.library_hints[library] = []
+                for i in config.get("libraries", library).split(","):
+                    self.library_hints[library].append(i.strip())
 
         if config.has_section("logging") and config.has_option("logging", "debug"):
             if config.getboolean("logging", "debug"):

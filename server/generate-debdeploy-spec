@@ -10,6 +10,7 @@ source = ""
 comment = ""
 updatetype = ""
 fixes = {}
+libraries = []
 
 while source == "":
     source = raw_input("Please enter the name of source package (e.g. openssl). Leave blank or type 'quit' to abort\n>").strip()
@@ -52,20 +53,26 @@ if not at_least_one_fixed_version:
     sys.exit(1)
 
 if updatetype == 'library':
-    print "You can specify an optional list of one or more library base names. These"
-    print "are used to detect necessary library restarts after an upgrade of a library"
+    print conf.library_hints
+    print "You can specify an optional comma-separated list of one or more library base names."
+    print "These are used to detect necessary library restarts after an upgrade of a library"
     print "E.g. for openssl, these would be 'libssl' and 'libcrypto'"
-    print "Press ENTER to complete the list or not provide any"
 
-    libraries = []
+    if conf.library_hints.get(source, None):
+        print "A pre-defined set has been configured: ", conf.library_hints[source]
+        print "Press ENTER to use it or provide an alternative list"
+        libinput = raw_input("Please enter the name of a library. Leave blank to quit \n>").strip()
+        if libinput == "":
+            libraries = conf.library_hints[source]
+        else:
+            for i in libinput.split(","):
+                libraries.append(i.strip())
+    else:
+        libinput = raw_input("Please enter the name of a library. Leave blank to quit \n>").strip()
+        for i in libinput.split(","):
+            libraries.append(i.strip())
     
-    lib = "undef"
-    while lib != "":
-        lib = raw_input("Please enter the name of a library. Leave blank to quit \n>").strip()
 
-        if lib != "undef" and lib != "":
-            libraries.append(lib)
-    
 valid_name = False
 suggested_name = datetime.datetime.now().strftime("%Y-%m-%d-") + source + ".yaml"
 while not valid_name:

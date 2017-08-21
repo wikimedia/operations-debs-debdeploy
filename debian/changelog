@@ -27,6 +27,8 @@ debdeploy (0.0.99-1) UNRELEASED; urgency=medium
     a transition period)
   * Create a new package debdeploy-server for the Cumin-based server
     and a new package debdeploy-client for the local runtime scripts
+  * Add new config options to debdeploy.conf to support pre-defined
+    library name mapping for the restart check
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 07 Jul 2017 13:49:03 +0200
 
