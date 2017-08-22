@@ -128,33 +128,32 @@ def detect_restarts(libnames, servergroup, verbose):
     verbose     : If enabled, the full of hosts needing a restart is shown (boolean)
     '''
 
-    worker = transport.Transport.new(cumin_config, logging)
-    hosts = query.Query(cumin_config).execute('A:all')
+    with open('/dev/null', 'w') as discard_output:
+         oldstdout = sys.stdout
+         oldstderr = sys.stderr
+         sys.stdout = discard_output
+         sys.stderr = discard_output
 
-    cmd = '/usr/bin/debdeploy-restarts --json --libname '
-    for lib in libnames:
-        cmd += lib + " "
+         worker = transport.Transport.new(cumin_config, logging)
+         hosts = query.Query(cumin_config).execute('A:all')
 
-    worker.target = transports.Target(hosts, batch_size=100, batch_sleep=None, logger=logging)
-    worker.commands = [cmd]
+         cmd = '/usr/bin/debdeploy-restarts --json --libname '
+         for lib in libnames:
+             cmd += lib + " "
 
-    worker.timeout = None
-    worker.handler = 'sync'
-    worker.success_threshold = 0.1
-    worker.batch_size = 100
-    worker.batch_sleep = None
+         worker.target = transports.Target(hosts, batch_size=100, batch_sleep=None, logger=logging)
+         worker.commands = [cmd]
 
-    # with open('/dev/null', 'w') as discard_output:
-    #     oldstdout = sys.stdout
-    #     sys.stdout = discard_output
-    #     exit_code = worker.execute()
-    #     sys.stdout = oldstdout
-
-    exit_code = worker.execute()
+         worker.timeout = None
+         worker.handler = 'sync'
+         worker.success_threshold = 0.1
+         worker.batch_size = 100
+         worker.batch_sleep = None
+         exit_code = worker.execute()
+         sys.stdout = oldstdout
+         sys.stderr = oldstderr
 
     restarts_per_lib = {}
-
-    out = {}
     for nodeset, output in worker.get_results():
         msg = str(output)
         hostname = str(nodeset)
@@ -179,6 +178,15 @@ def detect_restarts(libnames, servergroup, verbose):
             else:
                 out += " (" + str(len(restarts_per_lib[lib][program])) + " hosts)"
             print out
+
+    unreachable_hosts = []
+    for node in worker._handler_instance.nodes.itervalues():
+        if node.state.is_failed:
+            unreachable_hosts.append(node.name)
+    if len(unreachable_hosts) > 0:
+        print "The following hosts were unreachable:"
+        for host in unreachable_hosts:
+            print host
 
 
 def main():
