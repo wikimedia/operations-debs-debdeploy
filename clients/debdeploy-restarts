@@ -96,9 +96,9 @@ def result(status, restarts_needed, json_output):
     '''
 
     if json_output:
-        return json.dumps([status, restarts_needed])
+        return status + " " + json.dumps(restarts_needed)
     else:
-        return [status, restarts_needed]
+        return status + " " + restarts_needed
 
 
 def main():
@@ -112,26 +112,28 @@ def main():
 
     deleted_files = get_deleted_files()
     restarts_needed = {}
+    return_restarts = {}
 
     for i in deleted_files:
         procname, pid, fname = (i)
         for libname in args.libname:
             if fname.find(libname) != -1:
-                if not restarts_needed.get(procname, None):
-                    restarts_needed[procname] = {}
+                if not restarts_needed.get(fname, None):
+                    restarts_needed[fname] = set()
+                    restarts_needed[fname].add(procname)
+                else:
+                    restarts_needed[fname].add(procname)
 
-                if not restarts_needed[procname].get(pid, None):
-                    restarts_needed[procname][pid] = []
-
-                restarts_needed[procname][pid].append(fname)
+    for i in restarts_needed.keys():
+        return_restarts[i] = list(restarts_needed[i])
 
     if len(restarts_needed) == 0:
         return result("OK", "No service needs a restart", args.json)
     else:
         logger.info("These services need a restart:")
         for i in restarts_needed:
-            logger.info(i + " (" + str(len(restarts_needed[i].keys())) + " processes)")
-        return result("OK", restarts_needed, args.json)
+            logger.info(i + " (" + str(len(restarts_needed)) + " processes)")
+        return result("OK", return_restarts, args.json)
 
 
 if __name__ == '__main__':
