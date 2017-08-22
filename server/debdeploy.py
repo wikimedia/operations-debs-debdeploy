@@ -72,7 +72,7 @@ def run_cumin(cmd):
     cmd : The Command to be executed
     '''
 
-    with open('/dev/null', 'w') as discard_output:
+    with open(os.devnull, 'w') as discard_output:
          oldstdout = sys.stdout
          oldstderr = sys.stderr
          sys.stdout = discard_output
@@ -81,14 +81,11 @@ def run_cumin(cmd):
          worker = transport.Transport.new(cumin_config, logging)
          hosts = query.Query(cumin_config).execute('A:all')
 
-         worker.target = transports.Target(hosts, batch_size=100, batch_sleep=None, logger=logging)
+         worker.target = transports.Target(hosts, batch_size=100, logger=logging)
          worker.commands = [cmd]
 
-         worker.timeout = None
          worker.handler = 'sync'
          worker.success_threshold = 0.1
-         worker.batch_size = 100
-         worker.batch_sleep = None
          exit_code = worker.execute()
          sys.stdout = oldstdout
          sys.stderr = oldstderr
@@ -156,10 +153,7 @@ def detect_restarts(libnames, servergroup, verbose):
     verbose     : If enabled, the full of hosts needing a restart is shown (boolean)
     '''
 
-    cmd = '/usr/bin/debdeploy-restarts --json --libname '
-    for lib in libnames:
-        cmd += lib + " "
-
+    cmd = '/usr/bin/debdeploy-restarts --json --libname ' + ' '.join(libnames)
     worker = run_cumin(cmd)
 
     restarts_per_lib = {}
@@ -192,7 +186,7 @@ def detect_restarts(libnames, servergroup, verbose):
     for node in worker._handler_instance.nodes.itervalues():
         if node.state.is_failed:
             unreachable_hosts.append(node.name)
-    if len(unreachable_hosts) > 0:
+    if unreachable_hosts:
         print "The following hosts were unreachable:"
         for host in unreachable_hosts:
             print host
