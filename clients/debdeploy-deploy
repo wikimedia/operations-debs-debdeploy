@@ -189,7 +189,7 @@ def install_pkgs(binary_packages, version_num, downgrade=False):
     return update
 
 
-def result(status, updated_packages, log, json_output):
+def result(status, updated_packages, json_output):
     """Generates a data set to return to Cumin.
 
     status: OK | ERROR: foo
@@ -197,11 +197,11 @@ def result(status, updated_packages, log, json_output):
         previous and the new version
     log: the complete apt log
     """
-    ret = [status, updated_packages, log]
+
     if json_output:
-        return json.dumps(ret)
+        return status + " " + json.dumps(updated_packages)
     else:
-        return ret
+        return status + " " + str(updated_packages)
 
 
 def main():
@@ -221,11 +221,11 @@ def main():
 
     installed_distro = get_os_version()
     if installed_distro == 'invalid':
-        return result('ERROR: Could not parse installed distros', {}, '', args.json)
+        return result('ERROR Could not parse installed distros', {}, args.json)
 
     if versions.get(installed_distro, None) is None:
         logger.info("Update doesn't apply to the installed distribution (" + str(installed_distro))
-        return result("OK", {}, '', args.json)
+        return result("OK OSDIFFERS", {}, args.json)
 
     installed_binary_packages = get_installed_binary_packages(args.source)
     logger.debug('Installed binary packages for ' + args.source +
@@ -233,7 +233,7 @@ def main():
 
     if len(installed_binary_packages) == 0:
         logger.info('No binary packages installed for source package ' + args.source)
-        return result('OK', {}, '', args.json)
+        return result("OK NOBINARY", {}, args.json)
 
     if args.run_apt_update:
         try:
@@ -254,10 +254,10 @@ def main():
 
     logger.info('Modified packages: ' + str(modified))
 
-    if args.verbose:
-        return result('OK', modified, apt_output, args.json)
-    else:
-        return result('OK', modified, '', args.json)
+    if not modified:
+        return result('OK NOCHANGE', modified, args.json)
+
+    return result('OK', modified, args.json)
 
 
 if __name__ == '__main__':

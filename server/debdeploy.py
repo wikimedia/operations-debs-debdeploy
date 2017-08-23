@@ -65,6 +65,18 @@ class logpager:
             print self.buf
 
 
+def show_unreachable_hosts(worker):
+    unreachable_hosts = []
+    for node in worker._handler_instance.nodes.itervalues():
+        if node.state.is_failed:
+            unreachable_hosts.append(node.name)
+
+    if unreachable_hosts:
+        print
+        print "The following hosts were unreachable:"
+        for host in unreachable_hosts:
+            print host
+
 def run_cumin(cmd):
     '''
     Run Cumin and discard the output shown by the transport
@@ -111,86 +123,76 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
 
     print "Rolling out", source, ":",
     print update_desc[update_type]
+    print
 
-    worker = transport.Transport.new(cumin_config, logging)
-    hosts = query.Query(cumin_config).execute('A:all')
-
-    cmd = '/usr/bin/debdeploy-deploy --source ' + source + ' --updatespec '
-
+    cmd = '/usr/bin/debdeploy-deploy --json --source ' + source + ' --updatespec '
     for distro in fixes:
         if fixes[distro]:
-            cmd += str(supported_distros[distro][0][0]) + "_" + str(supported_distros[distro][0][1])
-            + "_" + str(fixes[distro]) + " "
+            cmd += str(supported_distros[distro][0][0]) + "_" + str(supported_distros[distro][0][1]) + "_" + str(fixes[distro]) + " "
 
-    worker.target = transports.Target(hosts, batch_size=100, batch_sleep=None, logger=logging)
-    worker.commands = [cmd]
+    worker = run_cumin(cmd)
 
-    worker.timeout = None
-    worker.handler = 'sync'
-    worker.success_threshold = 0.1
-    worker.batch_size = 100
-    worker.batch_sleep = None
-
-    # with open('/dev/null', 'w') as discard_output:
-    #     oldstdout = sys.stdout
-    #     sys.stdout = discard_output
-    #     exit_code = worker.execute()
-    #     sys.stdout = oldstdout
-
-    exit_code = worker.execute()
-
-    out = {}
     for nodeset, output in worker.get_results():
-        print output
+        msg = str(output)
+        if msg.startswith("OK NOCHANGE"):
+            print "These hosts are already up-to-date:"
+            print "  ", nodeset, "\n"
+        elif msg.startswith("OK OSDIFFERS"):
+            print "The update spec doesn't apply to the OS of the following hosts:"
+            print "  ", nodeset, "\n"
+        elif msg.startswith("OK NOBINARY"):
+            print "The package to be updated isn't installed on these hosts:"
+            print "  ", nodeset, "\n"
+        else:
+            updates = json.loads(msg[3:])
+            for package in updates.keys():
+                print package, "was updated: ", updates[package][0], "->", updates[package][1]
 
-def detect_restarts(libnames, servergroup, verbose):
+    show_unreachable_hosts(worker)
+
+
+def detect_restarts(libnames, servergroup):
     '''
     Query for necessary restarts after a library or interpreter upgrade
 
     libnames    : A list of library base names, e.g. libssl for
                   /usr/lib/x86_64-linux-gnu/libssl.so.1.0.0 (list of strings)
     servergroup : The name of the server group for which process restarts should be queried (string)
-    verbose     : If enabled, the full of hosts needing a restart is shown (boolean)
     '''
 
     cmd = '/usr/bin/debdeploy-restarts --json --libname ' + ' '.join(libnames)
+
     worker = run_cumin(cmd)
 
     restarts_per_lib = {}
     for nodeset, output in worker.get_results():
         msg = str(output)
-        hostname = str(nodeset)
         if msg.startswith("OK "):
-            restarts = json.loads(msg[3:])
-            for library in restarts.keys():
-                if not restarts_per_lib.get(library, None):
-                    restarts_per_lib[library] = {}
+            if str(msg[3:]) == '"No service needs a restart"':
+                no_restarts_needed = nodeset
+            else:
+                restarts = json.loads(msg[3:])
+                if restarts:
+                    for library in restarts.keys():
+                        if not restarts_per_lib.get(library, None):
+                            restarts_per_lib[library] = {}
 
-                for program in restarts[library]:
-                    if not restarts_per_lib[library].get(program, None):
-                        restarts_per_lib[library][program] = []
-                    restarts_per_lib[library][program].append(hostname)
+                        for program in restarts[library]:
+                            if not restarts_per_lib[library].get(program, None):
+                                restarts_per_lib[library][program] = []
+                            restarts_per_lib[library][program] = nodeset
 
     for lib in restarts_per_lib:
-        print "Restarts for", lib
+        print "Restarts for", lib, ":"
         for program in restarts_per_lib[lib]:
-            out = "  " + program
-            if verbose:
-                for host in sorted(restarts_per_lib[lib][program]):
-                    out += "\n    " + host
-            else:
-                out += " (" + str(len(restarts_per_lib[lib][program])) + " hosts)"
-            print out
+            print "  ", program
+            print "      " + str(restarts_per_lib[lib][program]) + " (" + str(len(restarts_per_lib[lib][program])) + " hosts)"
 
-    unreachable_hosts = []
-    for node in worker._handler_instance.nodes.itervalues():
-        if node.state.is_failed:
-            unreachable_hosts.append(node.name)
-    if unreachable_hosts:
-        print "The following hosts were unreachable:"
-        for host in unreachable_hosts:
-            print host
+    if no_restarts_needed:
+        print
+        print "No restarts were needed for", len(no_restarts_needed), "host(s)."
 
+    show_unreachable_hosts(worker)
 
 def main():
     p = argparse.ArgumentParser(usage="""debdeploy-master [options] command <cmd-option> \n
@@ -233,7 +235,7 @@ def main():
 
     elif opt.command == "query_restart":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
-        detect_restarts(update.libraries, opt.serverlist, opt.verbose)
+        detect_restarts(update.libraries, opt.serverlist)
 
     elif opt.command == "status-rollback":
         display_status(rollback_mode=True)
@@ -243,7 +245,7 @@ def main():
 
 
 if __name__ == '__main__':
-    print main()
+    main()
 
 
 # Local variables:
