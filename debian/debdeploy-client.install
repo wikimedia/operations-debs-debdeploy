@@ -1,3 +1,4 @@
 clients/debdeploy-deploy /usr/bin/
 clients/debdeploy-restarts /usr/bin/
+clients/debdeploy-revdeps /usr/bin/
 

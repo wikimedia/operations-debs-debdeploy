@@ -1,0 +1,68 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+'''
+Module for querying installed reverse dependencies of a package
+'''
+
+import subprocess
+import os
+import sys
+import argparse
+import json
+
+
+def parse_args():
+    p = argparse.ArgumentParser(
+        description='debdeploy-revdeps - Query for installed reverse dependencies')
+    p.add_argument('--json', action='store_true', default=False,
+                   help='Return results as JSON')
+    p.add_argument('--package', action='store', nargs='+', required=True)
+
+    args = p.parse_args(sys.argv[1:])
+
+    return args
+
+
+def result(status, rev_deps):
+    '''
+    Generates a data set to return to Cumin.
+    status: OK | ERROR: foo
+    rev_deps: sorted list of reverse dependencies
+    '''
+
+    return status + " " + json.dumps(rev_deps)
+
+
+def main():
+    '''
+    Lists all the installed reverse dependencies of the package(s).
+    '''
+    args = parse_args()
+
+    try:
+        rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.package)
+    except subprocess.CalledProcessError as e:
+        logger.info('Failed to query reverse dependies', e.returncode)
+        return result('ERROR Failed to query dependencies', '')
+
+    deps = set()
+
+    for i in rev_deps.split():
+        if i.startswith("|"):  # denotes an alternate dependency
+            deps.add(i.strip()[1:])
+        elif i in args.package:  # apt-cache rdepends also prints the package name
+            continue
+        elif i in ['Depends:', 'Reverse']:  # output by apt-cache
+            continue
+        else:
+            deps.add(i.strip())
+
+    return result('OK', list(sorted(deps)))
+
+
+if __name__ == '__main__':
+    print main()
+
+# Local variables:
+# mode: python
+# End:
