@@ -19,7 +19,7 @@ from ClusterShell.NodeSet import NodeSet
 
 import cumin
 
-from cumin import backends, query, transport, transports
+from cumin import query, transport, transports
 from debdeploy_conf import *
 import pydoc
 from debdeploy_updatespec import *
@@ -85,22 +85,22 @@ def run_cumin(cmd):
     '''
 
     with open(os.devnull, 'w') as discard_output:
-         oldstdout = sys.stdout
-         oldstderr = sys.stderr
-         sys.stdout = discard_output
-         sys.stderr = discard_output
+        oldstdout = sys.stdout
+        oldstderr = sys.stderr
+        sys.stdout = discard_output
+        sys.stderr = discard_output
 
-         worker = transport.Transport.new(cumin_config, logging)
-         hosts = query.Query(cumin_config).execute('A:all')
+        hosts = query.Query(cumin_config, logger=logging).execute('A:all')
+        target = transports.Target(hosts, batch_size=100, logger=logging)
+        worker = transport.Transport.new(cumin_config, target, logger=logging)
 
-         worker.target = transports.Target(hosts, batch_size=100, logger=logging)
-         worker.commands = [cmd]
+        worker.commands = [cmd]
 
-         worker.handler = 'sync'
-         worker.success_threshold = 0.1
-         exit_code = worker.execute()
-         sys.stdout = oldstdout
-         sys.stderr = oldstderr
+        worker.handler = 'sync'
+        worker.success_threshold = 0.1
+        exit_code = worker.execute()
+        sys.stdout = oldstdout
+        sys.stderr = oldstderr
 
     return worker
 
