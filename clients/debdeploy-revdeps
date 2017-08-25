@@ -1,14 +1,13 @@
-#! /usr/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 '''
 Module for querying installed reverse dependencies of a package
 '''
 
-import subprocess
-import os
-import sys
 import argparse
 import json
+import subprocess
+import sys
 
 
 def parse_args():
@@ -16,7 +15,7 @@ def parse_args():
         description='debdeploy-revdeps - Query for installed reverse dependencies')
     p.add_argument('--json', action='store_true', default=False,
                    help='Return results as JSON')
-    p.add_argument('--package', action='store', nargs='+', required=True)
+    p.add_argument('packages', action='store', nargs='+')
 
     args = p.parse_args(sys.argv[1:])
 
@@ -40,9 +39,9 @@ def main():
     args = parse_args()
 
     try:
-        rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.package)
+        rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.packages)
     except subprocess.CalledProcessError as e:
-        logger.info('Failed to query reverse dependies', e.returncode)
+        print 'Failed to query reverse dependies', e.returncode
         return result('ERROR Failed to query dependencies', '')
 
     deps = set()
@@ -50,14 +49,14 @@ def main():
     for i in rev_deps.split():
         if i.startswith("|"):  # denotes an alternate dependency
             deps.add(i.strip()[1:])
-        elif i in args.package:  # apt-cache rdepends also prints the package name
+        elif i in args.packages:  # apt-cache rdepends also prints the package name
             continue
         elif i in ['Depends:', 'Reverse']:  # output by apt-cache
             continue
         else:
             deps.add(i.strip())
 
-    return result('OK', list(sorted(deps)))
+    return result('OK', sorted(deps))
 
 
 if __name__ == '__main__':
