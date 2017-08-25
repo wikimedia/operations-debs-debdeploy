@@ -33,14 +33,13 @@ if os.geteuid() != 0:
 cumin_config = cumin.Config()
 conf = DebDeployConfig("/etc/debdeploy.conf")
 
+logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log',
+                    format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger('debdeploy')
 if conf.debug:
-    logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log',
-                        format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s',
-                        level=logging.DEBUG)
-else:
-    logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log',
-                        format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s',
-                        level=logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
 
 class logpager:
@@ -90,9 +89,9 @@ def run_cumin(cmd):
         sys.stdout = discard_output
         sys.stderr = discard_output
 
-        hosts = query.Query(cumin_config, logger=logging).execute('A:all')
-        target = transports.Target(hosts, batch_size=100, logger=logging)
-        worker = transport.Transport.new(cumin_config, target, logger=logging)
+        hosts = query.Query(cumin_config, logger=logger).execute('A:all')
+        target = transports.Target(hosts, batch_size=100, logger=logger)
+        worker = transport.Transport.new(cumin_config, target, logger=logger)
 
         worker.commands = [cmd]
 
