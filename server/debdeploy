@@ -123,28 +123,49 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
     print update_desc[update_type]
     print
 
-    cmd = '/usr/bin/debdeploy-deploy --json --source ' + source + ' --updatespec '
+    cmd = '/usr/bin/debdeploy-deploy --source ' + source + ' --updatespec '
     for distro in fixes:
         if fixes[distro]:
             cmd += str(supported_distros[distro][0][0]) + "_" + str(supported_distros[distro][0][1]) + "_" + str(fixes[distro]) + " "
 
     worker = run_cumin(cmd)
 
+    status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
         msg = str(output)
-        if msg.startswith("OK NOCHANGE"):
-            print "These hosts are already up-to-date:"
-            print "  ", nodeset, "\n"
-        elif msg.startswith("OK OSDIFFERS"):
-            print "The update spec doesn't apply to the OS of the following hosts:"
-            print "  ", nodeset, "\n"
-        elif msg.startswith("OK NOBINARY"):
-            print "The package to be updated isn't installed on these hosts:"
-            print "  ", nodeset, "\n"
-        else:
-            updates = json.loads(msg[3:])
-            for package in updates.keys():
-                print package, "was updated: ", updates[package][0], "->", updates[package][1]
+        try:
+            result = json.loads(msg)
+
+            status_codes = {"NOCHANGE": "These hosts are already up-to-date:",
+                            "OSDIFFERS": "The update spec doesn't apply to the OS of the following hosts:",
+                            "NOBINARY": "The package to be updated isn't installed on these hosts:",
+                            "INVALID_DISTRO": "Found an unsupported distro:"}
+
+            if result['status'] in status_codes:
+                print status_codes[result['status']]
+                print status_print.fill(str(nodeset))
+                print
+            elif result['success'] and result['status'] == 'UPDATES':
+                updates = result['data']
+                for package in updates.keys():
+                    print package, "was updated: ", updates[package][0], "->", updates[package][1]
+                    print status_print.fill(str(nodeset))
+                    print
+            else:
+                if result['success']:
+                    print "Unspecified return code:"
+                else:
+                    print "Unspecified error:"
+                print result['status']
+
+        except ValueError as e:
+            print "Could not decode JSON response for"
+            print nodeset
+            print e
+
+        except KeyError as e:
+            print "Failed to read expected value", e, ":"
+            print nodeset
 
     show_unreachable_hosts(worker)
 
@@ -158,28 +179,35 @@ def detect_restarts(libnames, servergroup):
     servergroup : The name of the server group for which process restarts should be queried (string)
     '''
 
-    cmd = '/usr/bin/debdeploy-restarts --json --libname ' + ' '.join(libnames)
+    cmd = '/usr/bin/debdeploy-restarts --libname ' + ' '.join(libnames)
 
     worker = run_cumin(cmd)
 
     restarts_per_lib = {}
     for nodeset, output in worker.get_results():
         msg = str(output)
-        if msg.startswith("OK "):
-            if str(msg[3:]) == '"No service needs a restart"':
-                print "No restarts were needed for", len(no_restarts_needed), "host(s):"
-                print nodeset
-            else:
-                restarts = json.loads(msg[3:])
-                if restarts:
-                    for library in restarts.keys():
-                        if not restarts_per_lib.get(library, None):
-                            restarts_per_lib[library] = {}
 
-                        for program in restarts[library]:
-                            if not restarts_per_lib[library].get(program, None):
-                                restarts_per_lib[library][program] = []
-                            restarts_per_lib[library][program] = nodeset
+        try:
+            result = json.loads(msg)
+            if result['success']:
+                if result['status'] == 'RESTARTS':
+                    restarts = result['data']
+                    if restarts:
+                        for library in restarts.keys():
+                            if not restarts_per_lib.get(library, None):
+                                restarts_per_lib[library] = {}
+
+                                for program in restarts[library]:
+                                    if not restarts_per_lib[library].get(program, None):
+                                        restarts_per_lib[library][program] = []
+                                    restarts_per_lib[library][program] = nodeset
+                elif result['status'] == 'NO_RESTARTS_NEEDED':
+                    print "No service needs a restart"
+
+        except ValueError as e:
+            print "Could not decode JSON response for"
+            print nodeset
+            print e
 
     for lib in restarts_per_lib:
         print "Restarts for", lib, ":"
@@ -199,22 +227,34 @@ def detect_rev_deps(pkgnames, servergroup):
     servergroup : The name of the server group for which process restarts should be queried (string)
     '''
 
-    cmd = '/usr/bin/debdeploy-revdeps --json ' + ' '.join(pkgnames)
+    cmd = '/usr/bin/debdeploy-revdeps ' + ' '.join(pkgnames)
 
     worker = run_cumin(cmd)
 
     status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
         msg = str(output)
-        if msg.startswith("OK "):
-            deps = json.loads(msg[3:])
-            if deps:
-                print nodeset
-                for service in deps:
-                    print status_print.fill(service)
+
+        try:
+            result = json.loads(msg)
+            if result['success']:
+                if result['status'] == 'LIST_DEPS':
+                    if result['data']:
+                        print nodeset
+                        for service in result['data']:
+                            print status_print.fill(service)
+                    else:
+                        print nodeset
+                        print status_print.fill("No reverse dependencies installed")
             else:
-                print nodeset
-                print status_print.fill("No reverse dependencies installed")
+                if result['status'] == 'QUERY_FAIL':
+                    print nodeset
+                    print status_print.fill("Coud not query reverse dependencies")
+
+        except ValueError as e:
+            print "Could not decode JSON response for"
+            print nodeset
+            print e
 
     show_unreachable_hosts(worker)
 

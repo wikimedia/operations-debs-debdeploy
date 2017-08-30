@@ -25,8 +25,6 @@ def parse_args():
         description='debdeploy-deploy - Deploy a software update')
     p.add_argument('--console', action='store_true', default=False,
                    help='Enable additional console output')
-    p.add_argument('--json', action='store_true', default=False,
-                   help='Return results as JSON')
     p.add_argument('--libname', action='store', nargs='+', required=True)
 
     args = p.parse_args(sys.argv[1:])
@@ -87,18 +85,21 @@ def get_deleted_files():
     return deleted_files
 
 
-def result(status, restarts_needed, json_output):
+def result(success, status, restarts_needed):
     '''
-    Generates a data set to return to Cumin.
-    status: OK | ERROR: foo
+    Generates a JSON data set to return to Cumin.
+    success: Did an error occur or not? (boolean)
+    status: Status code (string)
     restarts_needed: dictionary of process names with a dictionary
         of PIDs with a list of file references
     '''
 
-    if json_output:
-        return status + " " + json.dumps(restarts_needed)
-    else:
-        return status + " " + restarts_needed
+    data = {}
+    data['success'] = success
+    data['status'] = status
+    data['data'] = restarts_needed
+
+    return json.dumps(data)
 
 
 def main():
@@ -128,12 +129,12 @@ def main():
         return_restarts[i] = list(restarts_needed[i])
 
     if len(restarts_needed) == 0:
-        return result("OK", "No service needs a restart", args.json)
+        return result(True, "NO_RESTARTS_NEEDED", {})
     else:
         logger.info("These services need a restart:")
         for i in restarts_needed:
             logger.info(i + " (" + str(len(restarts_needed)) + " processes)")
-        return result("OK", return_restarts, args.json)
+        return result(True, "RESTARTS", return_restarts)
 
 
 if __name__ == '__main__':

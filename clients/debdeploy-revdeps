@@ -13,8 +13,6 @@ import sys
 def parse_args():
     p = argparse.ArgumentParser(
         description='debdeploy-revdeps - Query for installed reverse dependencies')
-    p.add_argument('--json', action='store_true', default=False,
-                   help='Return results as JSON')
     p.add_argument('packages', action='store', nargs='+')
 
     args = p.parse_args(sys.argv[1:])
@@ -22,14 +20,20 @@ def parse_args():
     return args
 
 
-def result(status, rev_deps):
+def result(success, status, rev_deps):
     '''
-    Generates a data set to return to Cumin.
-    status: OK | ERROR: foo
-    rev_deps: sorted list of reverse dependencies
+    Generates a JSON data set to return to Cumin.
+    success: Did an error occur or not? (boolean)
+    status: Status code (string)
+    rev_deps: List of reverse dependency packages
     '''
 
-    return status + " " + json.dumps(rev_deps)
+    data = {}
+    data['success'] = success
+    data['status'] = status
+    data['data'] = rev_deps
+
+    return json.dumps(data)
 
 
 def main():
@@ -42,7 +46,7 @@ def main():
         rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.packages)
     except subprocess.CalledProcessError as e:
         print 'Failed to query reverse dependies', e.returncode
-        return result('ERROR Failed to query dependencies', '')
+        return result(False, 'QUERY_FAIL', [])
 
     deps = set()
 
@@ -56,7 +60,7 @@ def main():
         else:
             deps.add(i.strip())
 
-    return result('OK', sorted(deps))
+    return result(True, 'LIST_DEPS', sorted(deps))
 
 
 if __name__ == '__main__':
