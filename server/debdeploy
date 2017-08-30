@@ -247,14 +247,21 @@ def detect_rev_deps(pkgnames, servergroup):
                         print nodeset
                         print status_print.fill("No reverse dependencies installed")
             else:
-                if result['status'] == 'QUERY_FAIL':
-                    print nodeset
-                    print status_print.fill("Coud not query reverse dependencies")
+                error_codes = {"QUERY_FAIL": "Failed to query reverse dependencies:",
+                               "INVALID_PACKAGE": "Unknown package:"}
+
+                if result['status'] in error_codes:
+                    print error_codes[result['status']]
+                    print status_print.fill(str(nodeset))
 
         except ValueError as e:
             print "Could not decode JSON response for"
             print nodeset
             print e
+
+        except KeyError as e:
+            print "Failed to read expected value", e, ":"
+            print nodeset
 
     show_unreachable_hosts(worker)
 

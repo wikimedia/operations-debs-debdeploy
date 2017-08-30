@@ -43,8 +43,11 @@ def main():
     args = parse_args()
 
     try:
-        rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.packages)
+        rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.packages, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
+        if e.output.startswith('E: No packages found'):
+            return result(False, 'INVALID_PACKAGE', [])
+
         print 'Failed to query reverse dependies', e.returncode
         return result(False, 'QUERY_FAIL', [])
 
