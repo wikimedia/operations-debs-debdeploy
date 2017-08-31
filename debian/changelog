@@ -1,4 +1,4 @@
-debdeploy (0.0.99-1) UNRELEASED; urgency=medium
+debdeploy (0.0.99-1) jessie-wikimedia; urgency=medium
 
   * Migrate away from Salt towards Cumin and clean out some code
     which turned out to be useful on paper, but not so useful
