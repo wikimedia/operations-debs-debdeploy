@@ -4,6 +4,8 @@
 Module for listing necessary service restarts after library updates
 '''
 
+from __future__ import print_function
+
 import logging
 import pickle
 import subprocess
@@ -138,7 +140,7 @@ def main():
 
 
 if __name__ == '__main__':
-    print main()
+    print(main())
 
 # Local variables:
 # mode: python

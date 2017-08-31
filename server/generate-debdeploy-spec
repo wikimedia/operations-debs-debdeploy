@@ -1,6 +1,8 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import sys, optparse, logging, os, datetime
 from debdeploy_conf import *
 
@@ -15,29 +17,29 @@ libraries = []
 while source == "":
     source = raw_input("Please enter the name of source package (e.g. openssl). Leave blank or type 'quit' to abort\n>").strip()
     if source == "" or source == "quit":
-        print "Aborting"
+        print("Aborting")
         sys.exit(1)
 
 comment = raw_input('You can enter an optional comment, e.g. a reference to a security advisory or a CVE ID mapping\n>').strip()
 if comment == "quit":
-    print "Aborting"
+    print("Aborting")
     sys.exit(1)
 
 while updatetype not in ['tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'library', 'quit']:
-    print "tool           -> The updated packages is an enduser tool, can be"
-    print "                  rolled-out immediately."
-    print "daemon-direct  -> Daemons which are restarted during update, but which"
-    print "                  do no affect existing users."
-    print "daemon-disrupt -> Daemons which are restarted during update, where the"
-    print "                  users notice an impact. The update procedure is almost"
-    print "                  identical, but displays additional warnings"
-    print "library        -> After a library is updated, programs may need to be"
-    print "                  restarted to fully effect the change. In addition"
-    print "                  to libs, some applications may also fall under this rule,"
-    print "                  e.g. when updating QEMU, you might need to restart VMs."
+    print("tool           -> The updated packages is an enduser tool, can be")
+    print("                  rolled-out immediately.")
+    print("daemon-direct  -> Daemons which are restarted during update, but which")
+    print("                  do no affect existing users.")
+    print("daemon-disrupt -> Daemons which are restarted during update, where the")
+    print("                  users notice an impact. The update procedure is almost")
+    print("                  identical, but displays additional warnings")
+    print("library        -> After a library is updated, programs may need to be")
+    print("                  restarted to fully effect the change. In addition")
+    print("                  to libs, some applications may also fall under this rule,")
+    print("                  e.g. when updating QEMU, you might need to restart VMs.")
     updatetype = raw_input("Please enter the update type:\n>").strip()
     if source == "" or source == "quit":
-        print "Aborting"
+        print("Aborting")
         sys.exit(1)
 
 for i in conf.supported_distros:
@@ -49,18 +51,18 @@ for i in fixes.values():
         at_least_one_fixed_version = True
 
 if not at_least_one_fixed_version:
-    print "At least one fixed version needs to be configured, aborting"
+    print("At least one fixed version needs to be configured, aborting")
     sys.exit(1)
 
 if updatetype == 'library':
-    print conf.library_hints
-    print "You can specify an optional comma-separated list of one or more library base names."
-    print "These are used to detect necessary library restarts after an upgrade of a library"
-    print "E.g. for openssl, these would be 'libssl' and 'libcrypto'"
+    print(conf.library_hints)
+    print("You can specify an optional comma-separated list of one or more library base names.")
+    print("These are used to detect necessary library restarts after an upgrade of a library")
+    print("E.g. for openssl, these would be 'libssl' and 'libcrypto'")
 
     if conf.library_hints.get(source, None):
-        print "A pre-defined set has been configured: ", conf.library_hints[source]
-        print "Press ENTER to use it or provide an alternative list"
+        print("A pre-defined set has been configured: ", conf.library_hints[source])
+        print("Press ENTER to use it or provide an alternative list")
         libinput = raw_input("Please enter the name of a library. Leave blank to quit \n>").strip()
         if libinput == "":
             libraries = conf.library_hints[source]
@@ -71,18 +73,17 @@ if updatetype == 'library':
         libinput = raw_input("Please enter the name of a library. Leave blank to quit \n>").strip()
         for i in libinput.split(","):
             libraries.append(i.strip())
-    
 
 valid_name = False
 suggested_name = datetime.datetime.now().strftime("%Y-%m-%d-") + source + ".yaml"
 while not valid_name:
-    print "Please enter a name under which the YAML file should be created"
-    print "Leave blank to use ", suggested_name
+    print("Please enter a name under which the YAML file should be created")
+    print("Leave blank to use ", suggested_name)
     yamlfilename = raw_input('>').strip()
     if not yamlfilename:
         yamlfilename = suggested_name
     if os.path.exists(yamlfilename):
-        print "File name already exists, please re-enter."
+        print("File name already exists, please re-enter.")
     else:
         valid_name = True
 
@@ -99,7 +100,7 @@ try:
         for i in libraries:
             yamlfile.write("      - " + i + "\n")
 except IOError, e:
-    print "Error:", e
+    print("Error:", e)
     sys.exit(1)
 
 

@@ -4,6 +4,8 @@
 Module for querying installed reverse dependencies of a package
 '''
 
+from __future__ import print_function
+
 import argparse
 import json
 import subprocess
@@ -48,7 +50,7 @@ def main():
         if e.output.startswith('E: No packages found'):
             return result(False, 'INVALID_PACKAGE', [])
 
-        print 'Failed to query reverse dependies', e.returncode
+        print('Failed to query reverse dependies', e.returncode)
         return result(False, 'QUERY_FAIL', [])
 
     deps = set()
@@ -67,7 +69,7 @@ def main():
 
 
 if __name__ == '__main__':
-    print main()
+    print(main())
 
 # Local variables:
 # mode: python

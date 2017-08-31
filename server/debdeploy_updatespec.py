@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import salt.client
 import yaml
 import sys
@@ -30,26 +32,26 @@ class DebDeployUpdateSpec(object):
                 updatefile = yaml.load(stream)
 
         except IOError:
-            print "Error: Could not open", updatespec
+            print("Error: Could not open", updatespec)
             sys.exit(1)
 
         except yaml.scanner.ScannerError, e:
-            print "Invalid YAML file:"
-            print e
+            print("Invalid YAML file:")
+            print(e)
             sys.exit(1)
 
         if not updatefile.has_key("source"):
-            print "Invalid YAML file, you need to specify the source package using the 'source' stanza, see the annotated example file for details"
+            print("Invalid YAML file, you need to specify the source package using the 'source' stanza, see the annotated example file for details")
             sys.exit(1)
         else:
             self.source = updatefile["source"]
 
         if not updatefile.has_key("update_type"):
-            print "Invalid YAML file, you need to specify the type of update using the 'update_type' stanza, see the annotated example file for details"
+            print("Invalid YAML file, you need to specify the type of update using the 'update_type' stanza, see the annotated example file for details")
             sys.exit(1)
         else:
             if updatefile["update_type"] not in self.legit_type:
-                print "Invalid YAML file, invalid 'update_type'"
+                print("Invalid YAML file, invalid 'update_type'")
                 sys.exit(1)
             self.update_type = updatefile["update_type"]
 
@@ -60,14 +62,14 @@ class DebDeployUpdateSpec(object):
             self.libraries = updatefile["libraries"]
 
         if not updatefile.has_key("fixes"):
-            print "Invalid YAML file, you need to specify at least one fixed version using the 'fixes' stanza, see the annotated example file for details"
+            print("Invalid YAML file, you need to specify at least one fixed version using the 'fixes' stanza, see the annotated example file for details")
             sys.exit(1)
         else:
             for i in updatefile["fixes"]:
                 if len(supported_distros.keys()) >= 1:
                     self.fixes[i] = updatefile["fixes"].get(i)
                 else:
-                    print "Invalid YAML file,", i, "is not a supported distribution. You need to activate it in /deb/debdeploy.conf"
+                    print("Invalid YAML file,", i, "is not a supported distribution. You need to activate it in /deb/debdeploy.conf")
                     sys.exit(1)
 
 # Local variables:

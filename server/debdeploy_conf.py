@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import ConfigParser, sys
 
 class DebDeployConfig(object):
@@ -16,12 +18,12 @@ class DebDeployConfig(object):
     def __init__(self, configfile):
         config = ConfigParser.ConfigParser()
         if len(config.read(configfile)) == 0:
-            print "/etc/debdeploy.conf doesn't exist, you need to create it."
-            print "See /usr/share/doc/debdeploy-master/examples/debdeploy.conf"
+            print("/etc/debdeploy.conf doesn't exist, you need to create it.")
+            print("See /usr/share/doc/debdeploy-master/examples/debdeploy.conf")
             sys.exit(1)
 
         if not config.has_section("distros"):
-            print "Could not read list of supported distributions, make sure", configfile, "contains a section [distros]"
+            print("Could not read list of supported distributions, make sure", configfile, "contains a section [distros]")
             sys.exit(1)
 
         for distro in config.options("distros"):
@@ -29,7 +31,7 @@ class DebDeployConfig(object):
             self.supported_distros[distro].append([x.strip() for x in config.get("distros", distro).split(",")])
 
         if len(self.supported_distros) < 1:
-            print "You need to specify at least one supported distribution in /etc/debdeploy.conf"
+            print("You need to specify at least one supported distribution in /etc/debdeploy.conf")
             sys.exit(1)
 
         if config.has_section("libraries"):

@@ -5,6 +5,8 @@
 # reinstate rollback handling
 # revamp and readd restart handling
 
+from __future__ import print_function
+
 import argparse
 import code
 import cumin
@@ -25,7 +27,7 @@ from debdeploy_conf import *
 from debdeploy_updatespec import *
 
 if os.geteuid() != 0:
-    print "debdeploy needs to be run as root"
+    print("debdeploy needs to be run as root")
     sys.exit(1)
 
 
@@ -60,7 +62,7 @@ class logpager:
         if self.buf.count("\n") > self.threshold:
             pydoc.pager(self.buf)
         else:
-            print self.buf
+            print(self.buf)
 
 
 def show_unreachable_hosts(worker):
@@ -70,10 +72,9 @@ def show_unreachable_hosts(worker):
             unreachable_hosts.append(node.name)
 
     if unreachable_hosts:
-        print
-        print "The following hosts were unreachable:"
+        print("\nThe following hosts were unreachable:")
         for host in unreachable_hosts:
-            print host
+            print(host)
 
 def run_cumin(cmd, alias):
     '''
@@ -103,8 +104,8 @@ def run_cumin(cmd, alias):
             return worker
 
         except cumin.backends.InvalidQueryError as e:
-            print "Invalid query:"
-            print e
+            print("Invalid query:")
+            print(e)
             sys.exit(1)
         finally:
             sys.stdout = oldstdout
@@ -127,9 +128,9 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
     update_desc["daemon-disrupt"] = "Daemon update with service availability impact"
     update_desc["library"] = "Library update, several services might need to be restarted"
 
-    print "Rolling out", source, ":",
-    print update_desc[update_type]
-    print
+    print("Rolling out", source, ": ")
+    print(update_desc[update_type])
+    print()
 
     cmd = '/usr/bin/debdeploy-deploy --source ' + source + ' --updatespec '
     for distro in fixes:
@@ -150,30 +151,30 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
                             "INVALID_DISTRO": "Found an unsupported distro:"}
 
             if result['status'] in status_codes:
-                print status_codes[result['status']]
-                print status_print.fill(str(nodeset))
-                print
+                print(status_codes[result['status']])
+                print(status_print.fill(str(nodeset)))
+                print()
             elif result['success'] and result['status'] == 'UPDATES':
                 updates = result['data']
                 for package in updates.keys():
-                    print package, "was updated: ", updates[package][0], "->", updates[package][1]
-                    print status_print.fill(str(nodeset))
-                    print
+                    print(package, "was updated: ", updates[package][0], "->", updates[package][1])
+                    print(status_print.fill(str(nodeset)))
+                    print()
             else:
                 if result['success']:
-                    print "Unspecified return code:"
+                    print("Unspecified return code:")
                 else:
-                    print "Unspecified error:"
-                print result['status']
+                    print("Unspecified error:")
+                print(result['status'])
 
         except ValueError as e:
-            print "Could not decode JSON response for"
-            print nodeset
-            print e
+            print("Could not decode JSON response for")
+            print(nodeset)
+            print(e)
 
         except KeyError as e:
-            print "Failed to read expected value", e, ":"
-            print nodeset
+            print("Failed to read expected value", e, ":")
+            print(nodeset)
 
     show_unreachable_hosts(worker)
 
@@ -210,18 +211,18 @@ def detect_restarts(libnames, servergroup):
                                         restarts_per_lib[library][program] = []
                                     restarts_per_lib[library][program] = nodeset
                 elif result['status'] == 'NO_RESTARTS_NEEDED':
-                    print "No service needs a restart"
+                    print("No service needs a restart")
 
         except ValueError as e:
-            print "Could not decode JSON response for"
-            print nodeset
-            print e
+            print("Could not decode JSON response for")
+            print(nodeset)
+            print(e)
 
     for lib in restarts_per_lib:
-        print "Restarts for", lib, ":"
+        print("Restarts for", lib, ":")
         for program in restarts_per_lib[lib]:
-            print "  ", program
-            print "      " + str(restarts_per_lib[lib][program]) + " (" + str(len(restarts_per_lib[lib][program])) + " hosts)"
+            print("  ", program)
+            print("      " + str(restarts_per_lib[lib][program]) + " (" + str(len(restarts_per_lib[lib][program])) + " hosts)")
 
     show_unreachable_hosts(worker)
 
@@ -248,28 +249,28 @@ def detect_rev_deps(pkgnames, servergroup):
             if result['success']:
                 if result['status'] == 'LIST_DEPS':
                     if result['data']:
-                        print nodeset
+                        print(nodeset)
                         for service in result['data']:
-                            print status_print.fill(service)
+                            print(status_print.fill(service))
                     else:
-                        print nodeset
-                        print status_print.fill("No reverse dependencies installed")
+                        print(nodeset)
+                        print(status_print.fill("No reverse dependencies installed"))
             else:
                 error_codes = {"QUERY_FAIL": "Failed to query reverse dependencies:",
                                "INVALID_PACKAGE": "Unknown package:"}
 
                 if result['status'] in error_codes:
-                    print error_codes[result['status']]
-                    print status_print.fill(str(nodeset))
+                    print(error_codes[result['status']])
+                    print(status_print.fill(str(nodeset)))
 
         except ValueError as e:
-            print "Could not decode JSON response for"
-            print nodeset
-            print e
+            print("Could not decode JSON response for")
+            print(nodeset)
+            print(e)
 
         except KeyError as e:
-            print "Failed to read expected value", e, ":"
-            print nodeset
+            print("Failed to read expected value", e, ":")
+            print(nodeset)
 
     show_unreachable_hosts(worker)
 
