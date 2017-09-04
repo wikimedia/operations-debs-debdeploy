@@ -9,16 +9,14 @@ Refinements to existing functionality:
 - puppet triggers a run every 30 mins, sometimes updates clash with that, the
   minion should detect a running "apt-get update" and postpone the installation
   run
+- Allow to blacklist packages (e.g. src:linux)
 
 New feature work:
 - Add an internal list of patched packages and emit a warning if a spec file
   is generated for those
-- Implement a function to list of reverse dependencies of a package (to give
-  an estimate what a package is used for on a server group)
-- Add a generic notification mechanism if an update has been deployed
-  and create a WMF-specific IRC notification which updates "server admin log"
-- Make the logging configurable and add a WMF-specific logging method for
-  Logstash
 - Implement timed restarts, which restart services not an once, but in
   steps/with delays
 - Implement timed updates (with a delay)
+- Add support in restart detection for interpreters and their process runtime
+- Support binNMU updates (tricky because fixed version differs on a per binary
+  package basis)
