@@ -308,6 +308,11 @@ def main():
 
     opt = p.parse_args()
 
+    if opt.serverlist:
+        if opt.serverlist not in cumin_config['aliases']:
+            print("Invalid host group alias")
+            sys.exit(1)
+
     if opt.command == "deploy":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
         deploy_update(update.source, update.update_type, opt.updatefile, opt.serverlist,
