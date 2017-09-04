@@ -152,13 +152,13 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
 
             if result['status'] in status_codes:
                 print(status_codes[result['status']])
-                print(status_print.fill(str(nodeset)))
+                print(status_print.fill(str(nodeset) + " (" + str(len(nodeset)) + " hosts)"))
                 print()
             elif result['success'] and result['status'] == 'UPDATES':
                 updates = result['data']
                 for package in updates.keys():
                     print(package, "was updated: ", updates[package][0], "->", updates[package][1])
-                    print(status_print.fill(str(nodeset)))
+                    print(status_print.fill(str(nodeset) + " (" + str(len(nodeset)) + " hosts)"))
                     print()
             else:
                 if result['success']:
