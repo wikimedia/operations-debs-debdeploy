@@ -77,9 +77,9 @@ def get_os_version():
         return 'invalid'
 
     for line in lines:
-        if line.startswith('ID'):
+        if line.startswith('ID='):
             os_id = line.split('=')[1].strip().replace('"', '')
-        if line.startswith('VERSION_ID'):
+        if line.startswith('VERSION_ID='):
             os_version = line.split('=')[1].strip().replace('"', '')
 
     if not os_id:
