@@ -1,10 +1,6 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# TODO:
-# reinstate rollback handling
-# revamp and readd restart handling
-
 from __future__ import print_function
 
 import argparse
@@ -112,7 +108,7 @@ def run_cumin(cmd, alias):
             sys.stderr = oldstderr
 
 
-def deploy_update(source, update_type, update_file, servergroup, supported_distros, fixes):
+def deploy_update(source, update_type, update_file, servergroup, supported_distros, fixes, downgrade=False):
     '''
     Initiate a deployment.
 
@@ -136,6 +132,9 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
     for distro in fixes:
         if fixes[distro]:
             cmd += str(supported_distros[distro][0][0]) + "_" + str(supported_distros[distro][0][1]) + "_" + str(fixes[distro]) + " "
+
+    if downgrade:
+        cmd += " --downgrade"
 
     worker = run_cumin(cmd, servergroup)
 
@@ -316,7 +315,7 @@ def main():
     if opt.command == "deploy":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
         deploy_update(update.source, update.update_type, opt.updatefile, opt.serverlist,
-                      conf.supported_distros, update.fixes)
+                      conf.supported_distros, update.fixes, update.downgrade)
 
     elif opt.command == "query_restart":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)

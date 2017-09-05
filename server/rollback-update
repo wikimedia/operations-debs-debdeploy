@@ -1,0 +1,67 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+
+import argparse
+import readline
+import sys
+
+import debdeploy_conf
+import debdeploy_updatespec
+
+def parse_args():
+    p = argparse.ArgumentParser(
+        description='rollback-update - Generate an update spec to roll back an update')
+    p.add_argument('update_spec', action='store')
+
+    args = p.parse_args(sys.argv[1:])
+
+    return args
+
+
+def main():
+    conf = debdeploy_conf.DebDeployConfig("/etc/debdeploy.conf")
+    args = parse_args()
+    downgrade_fixes = {}
+
+    old_update = debdeploy_updatespec.DebDeployUpdateSpec(args.update_spec, conf.supported_distros)
+    yamlfilename = "rollback-" + args.update_spec
+
+    print("Generating a spec file to rollback", args.update_spec, "\n")
+
+    for distro in conf.supported_distros:
+        if old_update.fixes[distro]:
+            print("Please specify the version to downgrade to")
+            readline.set_startup_hook(lambda: readline.insert_text(old_update.fixes[distro]))
+            downgrade_fixes[distro] = raw_input('>')
+
+    try:
+        with open(yamlfilename, "w") as yamlfile:
+            yamltext = '''source: {src}
+comment: Rollback of update {spec}
+update_type: {updatetype}
+downgrade: true
+fixes:\n'''.format(src=old_update.source, spec=args.update_spec,
+                                          updatetype=old_update.update_type)
+            yamlfile.write(yamltext)
+            for i in downgrade_fixes:
+                yamltext = "        {distro}: {fix} \n".format(distro=i, fix=downgrade_fixes[i])
+                yamlfile.write(yamltext)
+            yamlfile.write('libraries:\n')
+            if old_update.libraries:
+                for i in old_update.libraries:
+                    yamltext = "      - {lib} \n".format(lib=i)
+                    yamlfile.write(yamltext)
+    except IOError as e:
+        print("Error:", e)
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
+
+
+# Local variables:
+# mode: python
+# End:

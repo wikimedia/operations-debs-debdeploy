@@ -18,6 +18,8 @@ class DebDeployUpdateSpec(object):
     fixes = {}
     libraries = []
     legit_type = ['tool', 'daemon-direct', 'daemon-disrupt', 'daemon-cluster', 'reboot', 'reboot-cluster', 'library']
+    downgrade = False
+
 
     def __init__(self, updatespec, supported_distros):
         '''
@@ -60,6 +62,9 @@ class DebDeployUpdateSpec(object):
 
         if updatefile.has_key("libraries"):
             self.libraries = updatefile["libraries"]
+
+        if "downgrade" in updatefile:
+            self.downgrade = updatefile["downgrade"]
 
         if not updatefile.has_key("fixes"):
             print("Invalid YAML file, you need to specify at least one fixed version using the 'fixes' stanza, see the annotated example file for details")

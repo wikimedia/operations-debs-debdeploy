@@ -32,6 +32,8 @@ def parse_args(argv):
     p.add_argument('--updatespec', action='store', nargs='+', required=True,
                    help=('The identifier for the update, an underscore-separated string with: '
                          ' distro ID, distro release, fixed version'))
+    p.add_argument('--downgrade', action='store_true', help='Allow downgrading package versions',
+                   default=False)
 
     args = p.parse_args(argv)
 
@@ -244,8 +246,7 @@ def main():
             logger.info('apt-get update failed: ', e.returncode)
 
     old = list_pkgs()
-    apt_output = install_pkgs(installed_binary_packages, versions.get(installed_distro, None))
-
+    apt_output = install_pkgs(installed_binary_packages, versions.get(installed_distro, None), downgrade=args.downgrade)
     new = list_pkgs()
 
     old_keys = set(old.keys())
