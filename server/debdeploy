@@ -211,7 +211,7 @@ def detect_restarts(libnames, servergroup):
                                         restarts_per_lib[library][program] = []
                                     restarts_per_lib[library][program] = nodeset
                 elif result['status'] == 'NO_RESTARTS_NEEDED':
-                    print("No service needs a restart")
+                    print("No service needs a restart" + " (" + str(len(nodeset)) + " hosts)\n")
 
         except ValueError as e:
             print("Could not decode JSON response for")
