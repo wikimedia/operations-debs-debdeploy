@@ -228,11 +228,11 @@ def detect_restarts(libnames, servergroup):
 
 def detect_rev_deps(pkgnames, servergroup):
     '''
-    Query for necessary restarts after a library or interpreter upgrade
+    Query for reverse dependencies of packages(s)
 
     pkgnames    : A list of package names for which reverse dependencies are displayed,
                   e.g. libssl1.1 (list of strings)
-    servergroup : The name of the server group for which process restarts should be queried (string)
+    servergroup : The name of the server group for which process reverse dependencies should be queried (string)
     '''
 
     cmd = '/usr/bin/debdeploy-revdeps ' + ' '.join(pkgnames)
@@ -261,6 +261,46 @@ def detect_rev_deps(pkgnames, servergroup):
                 if result['status'] in error_codes:
                     print(error_codes[result['status']])
                     print(status_print.fill(str(nodeset)))
+
+        except ValueError as e:
+            print("Could not decode JSON response for")
+            print(nodeset)
+            print(e)
+
+        except KeyError as e:
+            print("Failed to read expected value", e, ":")
+            print(nodeset)
+
+    show_unreachable_hosts(worker)
+
+
+def detect_package_versions(pkgnames, servergroup):
+    '''
+    Query for installed version(s) of package(s)
+
+    pkgnames    : A list of package names for which the installed version is queried e.g. libc6 (list of strings)
+    servergroup : The name of the server group for which process restarts should be queried (string)
+    '''
+
+    cmd = '/usr/bin/debdeploy-pkgversion ' + ' '.join(pkgnames)
+
+    worker = run_cumin(cmd, servergroup)
+
+    status_print = textwrap.TextWrapper(initial_indent='  ')
+    for nodeset, output in worker.get_results():
+        msg = str(output)
+
+        try:
+            result = json.loads(msg)
+            if result['success']:
+                if result['status'] == 'LIST_PKG_VERSIONS':
+                    if result['data']:
+                        for package in result['data']:
+                            print(nodeset)
+                            print(status_print.fill(package + ": " + result['data'][package]))
+                    else:
+                        print(nodeset)
+                        print(status_print.fill("Package(s) not installed"))
 
         except ValueError as e:
             print("Could not decode JSON response for")
@@ -305,6 +345,13 @@ def main():
                                 help="A YAML file containing the update specification (which source package to \
                                 update and the respective fixed versions", required=True)
 
+    parser_version = subp.add_parser('query_version', help='Query the installed versions of packages')
+    parser_version.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
+                                help="The group of servers for which installed package versions should be queried",
+                                required=True)
+    parser_version.add_argument('--packages', action='store', nargs='+',
+                             help="Packages to query installed versions", required=True)
+
     opt = p.parse_args()
 
     if opt.serverlist:
@@ -324,6 +371,8 @@ def main():
     elif opt.command == "query_deps":
         detect_rev_deps(opt.packages, opt.serverlist)
 
+    elif opt.command == "query_version":
+        detect_package_versions(opt.packages, opt.serverlist)
 
 if __name__ == '__main__':
     main()

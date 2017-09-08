@@ -1,0 +1,100 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+'''
+Module for querying installed reverse dependencies of a package
+'''
+
+from __future__ import print_function
+
+import argparse
+import json
+import sys
+
+from debian import deb822
+
+
+def parse_args():
+    p = argparse.ArgumentParser(
+        description='debdeploy-revdeps - Query for installed reverse dependencies')
+    p.add_argument('packages', action='store', nargs='+')
+
+    args = p.parse_args(sys.argv[1:])
+
+    return args
+
+
+def result(success, status, rev_deps):
+    '''
+    Generates a JSON data set to return to Cumin.
+    success: Did an error occur or not? (boolean)
+    status: Status code (string)
+    rev_deps: List of reverse dependency packages
+    '''
+
+    data = {}
+    data['success'] = success
+    data['status'] = status
+    data['data'] = rev_deps
+
+    return json.dumps(data)
+
+
+def get_installed_binary_packages():
+    """Detect all locally installed binary packages."""
+    # The only resource we can use for that is parsing the /var/lib/dpkg/status
+    # file. The format is a bit erratic: The Source: line is only present for
+    # binary packages not having the same source name as the binary package
+    installed_binary_packages = []
+    try:
+        with open('/var/lib/dpkg/status', 'r') as dpkg_status_file:
+            for pkg in deb822.Packages.iter_paragraphs(dpkg_status_file):
+                # skip packages in deinstalled status ("rc" in dpkg). These are irrelevant for
+                # upgrades and cause problems when binary package names have changed (since
+                # package installations are forced with a specific version which is not available
+                # for those outdated binary package names)
+                installation_status = pkg['Status'].split()[0]
+                if installation_status == 'deinstall':
+                    continue
+
+                try:
+                    version = pkg['Version'].split()[0]
+                except KeyError as e:
+                    version = "unspecified"
+
+                # Source packages which have had a binNMU have a Source: entry with the source
+                # package version in brackets, so strip these
+                # If no Source: entry is present in /var/lib/dpkg/status, then the source package
+                # name is identical to the binary package name
+
+                installed_binary_packages.append((pkg['Package'], version))
+    except IOError as e:
+        print("Could not open dpkg status file")
+        sys.exit(1)
+
+    return installed_binary_packages
+
+
+def main():
+    '''
+    Lists the installed versions of all given packages
+    '''
+    args = parse_args()
+
+    pkg_versions = {}
+
+    installed_binary_packages = get_installed_binary_packages()
+
+    for check_version in args.packages:
+        for pkg in installed_binary_packages:
+            if pkg[0] == check_version:
+                pkg_versions[pkg[0]] = pkg[1]
+
+    return result(True, 'LIST_PKG_VERSIONS', pkg_versions)
+
+
+if __name__ == '__main__':
+    print(main())
+
+# Local variables:
+# mode: python
+# End:
