@@ -17,6 +17,7 @@ import sys
 import textwrap
 
 from ClusterShell.NodeSet import NodeSet
+from collections import defaultdict
 
 from cumin import query, transport, transports
 from debdeploy_conf import *
@@ -191,7 +192,7 @@ def detect_restarts(libnames, servergroup):
 
     worker = run_cumin(cmd, servergroup)
 
-    restarts_per_lib = {}
+    restarts_per_lib = defaultdict(lambda: defaultdict(NodeSet))
     for nodeset, output in worker.get_results():
         msg = str(output)
 
@@ -200,15 +201,10 @@ def detect_restarts(libnames, servergroup):
             if result['success']:
                 if result['status'] == 'RESTARTS':
                     restarts = result['data']
-                    if restarts:
-                        for library in restarts.keys():
-                            if not restarts_per_lib.get(library, None):
-                                restarts_per_lib[library] = {}
+                    for library in restarts:
+                        for program in library:
+                            restarts_per_lib[library][program] |= nodeset
 
-                                for program in restarts[library]:
-                                    if not restarts_per_lib[library].get(program, None):
-                                        restarts_per_lib[library][program] = []
-                                    restarts_per_lib[library][program] = nodeset
                 elif result['status'] == 'NO_RESTARTS_NEEDED':
                     print("No service needs a restart" + " (" + str(len(nodeset)) + " hosts)\n")
 
