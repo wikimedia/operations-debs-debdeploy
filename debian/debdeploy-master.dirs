@@ -1,7 +1,0 @@
-/var/lib/debdeploy/
-/var/log/debdeploy/
-/usr/lib/debdeploy/
-/usr/lib/python2.7/dist-packages/
-/usr/sbin/
-/usr/bin/
-

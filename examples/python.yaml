@@ -1,9 +1,0 @@
-source: python2.7
-comment: various python security updates
-update_type: library
-fixes:
-        jessie: 2.7.10-3
-        trusty: 2.7.6-8ubuntu0.2
-        precise: 2.7.3-0ubuntu3.8
-
-        
