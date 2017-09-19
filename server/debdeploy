@@ -201,8 +201,8 @@ def detect_restarts(libnames, servergroup):
             if result['success']:
                 if result['status'] == 'RESTARTS':
                     restarts = result['data']
-                    for library in restarts:
-                        for program in library:
+                    for library, programs in restarts.iteritems():
+                        for program in programs:
                             restarts_per_lib[library][program] |= nodeset
 
                 elif result['status'] == 'NO_RESTARTS_NEEDED':
