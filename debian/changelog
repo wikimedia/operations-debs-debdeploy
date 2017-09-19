@@ -1,8 +1,19 @@
-debdeploy (0.0.99.1-1) UNRELEASED; urgency=medium
+debdeploy (0.0.99.1-1) stretch-wikimedia; urgency=medium
 
   * Print amount of hosts not requiring a restart in "query_restart"
     command
   * Fix bug in display of necessary restarts
+  * New command query_version to check whether/in which version a
+    package is installed.
+  * Readd rollback handling to debdeploy: With debdeploy/salt
+    rollbacks relied on the job database managed by Salt. That no
+    longer exists with Cumin, so instead it uses the
+    following scheme: To rollback an update, the original YAML
+    update spec needs to be passsed to rollback-update(1), which
+    queries the versions to downgrade to. This new spec file can be
+    then used like any other deployment (except that it enables a
+    new flag with enables downgrades internally)
+  * Remove the salt-based debdeploy code
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 08 Sep 2017 12:03:34 +0200
 
