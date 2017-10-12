@@ -1,6 +1,7 @@
-debdeploy (0.0.99.1-2) stretch-wikimedia; urgency=medium
+debdeploy (0.0.99.2-1+deb9u1) stretch-wikimedia; urgency=medium
 
   * Remove a stray import of salt.client
+  * Use readline in generate-debdeploy-spec
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Tue, 26 Sep 2017 09:21:58 +0200
 
