@@ -3,7 +3,13 @@
 
 from __future__ import print_function
 
-import sys, optparse, logging, os, datetime
+import datetime
+import logging
+import optparse
+import os
+import readline
+import sys
+
 from debdeploy_conf import *
 
 conf = DebDeployConfig("/etc/debdeploy.conf")
@@ -55,22 +61,15 @@ if not at_least_one_fixed_version:
     sys.exit(1)
 
 if updatetype == 'library':
-    print(conf.library_hints)
     print("You can specify an optional comma-separated list of one or more library base names.")
     print("These are used to detect necessary library restarts after an upgrade of a library")
     print("E.g. for openssl, these would be 'libssl' and 'libcrypto'")
 
     if conf.library_hints.get(source, None):
-        print("A pre-defined set has been configured: ", conf.library_hints[source])
-        print("Press ENTER to use it or provide an alternative list")
-        libinput = raw_input("Please enter the name of a library. Leave blank to quit \n>").strip()
-        if libinput == "":
-            libraries = conf.library_hints[source]
-        else:
-            for i in libinput.split(","):
-                libraries.append(i.strip())
-    else:
-        libinput = raw_input("Please enter the name of a library. Leave blank to quit \n>").strip()
+        readline.set_startup_hook(lambda: readline.insert_text(",".join(conf.library_hints[source])))
+
+    libinput = raw_input("Please enter the name of one or several libraries. Leave blank to skip \n>").strip()
+    if libinput:
         for i in libinput.split(","):
             libraries.append(i.strip())
 
@@ -78,7 +77,7 @@ valid_name = False
 suggested_name = datetime.datetime.now().strftime("%Y-%m-%d-") + source + ".yaml"
 while not valid_name:
     print("Please enter a name under which the YAML file should be created")
-    print("Leave blank to use ", suggested_name)
+    readline.set_startup_hook(lambda: readline.insert_text(suggested_name))
     yamlfilename = raw_input('>').strip()
     if not yamlfilename:
         yamlfilename = suggested_name
