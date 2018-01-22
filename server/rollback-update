@@ -1,7 +1,5 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: utf-8 -*-
-
-from __future__ import print_function
 
 import argparse
 import readline
@@ -9,6 +7,7 @@ import sys
 
 import debdeploy_conf
 import debdeploy_updatespec
+
 
 def parse_args():
     p = argparse.ArgumentParser(
@@ -28,7 +27,7 @@ def main():
     old_update = debdeploy_updatespec.DebDeployUpdateSpec(args.update_spec, conf.supported_distros)
     yamlfilename = "rollback-" + args.update_spec
 
-    print("Generating a spec file to rollback", args.update_spec, "\n")
+    print("Generating a spec file to rollback {}\n".format(args.update_spec))
 
     for distro in conf.supported_distros:
         if old_update.fixes[distro]:
@@ -42,8 +41,7 @@ def main():
 comment: Rollback of update {spec}
 update_type: {updatetype}
 downgrade: true
-fixes:\n'''.format(src=old_update.source, spec=args.update_spec,
-                                          updatetype=old_update.update_type)
+fixes:\n'''.format(src=old_update.source, spec=args.update_spec, updatetype=old_update.update_type)
             yamlfile.write(yamltext)
             for i in downgrade_fixes:
                 yamltext = "        {distro}: {fix} \n".format(distro=i, fix=downgrade_fixes[i])
@@ -54,7 +52,7 @@ fixes:\n'''.format(src=old_update.source, spec=args.update_spec,
                     yamltext = "      - {lib} \n".format(lib=i)
                     yamlfile.write(yamltext)
     except IOError as e:
-        print("Error:", e)
+        print("Error: {}".format(e))
         sys.exit(1)
 
 

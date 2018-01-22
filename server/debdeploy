@@ -1,32 +1,27 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import argparse
-import code
-import cumin
-import datetime
 import json
 import logging
 import os
-import pkgutil
 import pydoc
-import signal
 import sys
 import textwrap
 
-from ClusterShell.NodeSet import NodeSet
 from collections import defaultdict
 
+import cumin
+
 from cumin import query, transport, transports
+
 from debdeploy_conf import *
 from debdeploy_updatespec import *
+
 
 if os.geteuid() != 0:
     print("debdeploy needs to be run as root")
     sys.exit(1)
-
 
 cumin_config = cumin.Config()
 conf = DebDeployConfig("/etc/debdeploy.conf")
@@ -40,28 +35,6 @@ logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log',
                     level=logging_level)
 
 
-class logpager:
-    threshold = 20  # if pager buffer contains more than <threshold> lines, use the pager
-
-    def __init__(self):
-        self.buf = ""
-
-    def add(self, *args):
-        for i in args:
-            self.buf += str(i)
-        self.buf += "\n"
-
-    def add_nb(self, *args):
-        for i in args:
-            self.buf += str(i)
-
-    def show(self):
-        if self.buf.count("\n") > self.threshold:
-            pydoc.pager(self.buf)
-        else:
-            print(self.buf)
-
-
 def show_unreachable_hosts(worker):
     unreachable_hosts = []
     for node in worker._handler_instance.nodes.itervalues():
@@ -72,6 +45,7 @@ def show_unreachable_hosts(worker):
         print("\nThe following hosts were unreachable:")
         for host in unreachable_hosts:
             print(host)
+
 
 def run_cumin(cmd, alias):
     '''
@@ -125,7 +99,7 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
     update_desc["daemon-disrupt"] = "Daemon update with service availability impact"
     update_desc["library"] = "Library update, several services might need to be restarted"
 
-    print("Rolling out", source, ": ")
+    print("Rolling out {}:".format(source))
     print(update_desc[update_type])
     print()
 
@@ -157,7 +131,8 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
             elif result['success'] and result['status'] == 'UPDATES':
                 updates = result['data']
                 for package in updates.keys():
-                    print(package, "was updated: ", updates[package][0], "->", updates[package][1])
+                    print("{} was updated: {} -> {}".format(
+                        package, updates[package][0], updates[package][1]))
                     print(status_print.fill(str(nodeset) + " (" + str(len(nodeset)) + " hosts)"))
                     print()
             else:
@@ -173,7 +148,7 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
             print(e)
 
         except KeyError as e:
-            print("Failed to read expected value", e, ":")
+            print("Failed to read expected value {}:".format(e))
             print(nodeset)
 
     show_unreachable_hosts(worker)
@@ -192,7 +167,7 @@ def detect_restarts(libnames, servergroup):
 
     worker = run_cumin(cmd, servergroup)
 
-    restarts_per_lib = defaultdict(lambda: defaultdict(NodeSet))
+    restarts_per_lib = defaultdict(lambda: defaultdict(cumin.NodeSet))
     for nodeset, output in worker.get_results():
         msg = str(output)
 
@@ -214,9 +189,9 @@ def detect_restarts(libnames, servergroup):
             print(e)
 
     for lib in restarts_per_lib:
-        print("Restarts for", lib, ":")
+        print("Restarts for {}:".format(lib))
         for program in restarts_per_lib[lib]:
-            print("  ", program)
+            print("  " + program)
             print("      " + str(restarts_per_lib[lib][program]) + " (" + str(len(restarts_per_lib[lib][program])) + " hosts)")
 
     show_unreachable_hosts(worker)
@@ -264,7 +239,7 @@ def detect_rev_deps(pkgnames, servergroup):
             print(e)
 
         except KeyError as e:
-            print("Failed to read expected value", e, ":")
+            print("Failed to read expected value {}:".format(e))
             print(nodeset)
 
     show_unreachable_hosts(worker)
@@ -304,7 +279,7 @@ def detect_package_versions(pkgnames, servergroup):
             print(e)
 
         except KeyError as e:
-            print("Failed to read expected value", e, ":")
+            print("Failed to read expected value {}:".format(e))
             print(nodeset)
 
     show_unreachable_hosts(worker)
@@ -369,6 +344,7 @@ def main():
 
     elif opt.command == "query_version":
         detect_package_versions(opt.packages, opt.serverlist)
+
 
 if __name__ == '__main__':
     main()

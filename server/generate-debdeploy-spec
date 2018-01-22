@@ -1,11 +1,7 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 import datetime
-import logging
-import optparse
 import os
 import readline
 import sys
@@ -99,15 +95,10 @@ try:
         for i in libraries:
             yamlfile.write("      - " + i + "\n")
 except IOError, e:
-    print("Error:", e)
+    print("Error: {}".format(e))
     sys.exit(1)
 
 
 # Local variables:
 # mode: python
 # End:
-
-
-
-
-

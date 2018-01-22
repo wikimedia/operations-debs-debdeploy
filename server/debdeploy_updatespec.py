@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import print_function
+import sys
 
 import yaml
-import sys
+
 
 class DebDeployUpdateSpec(object):
     '''
@@ -16,16 +15,17 @@ class DebDeployUpdateSpec(object):
     update_type = ""
     fixes = {}
     libraries = []
-    legit_type = ['tool', 'daemon-direct', 'daemon-disrupt', 'daemon-cluster', 'reboot', 'reboot-cluster', 'library']
+    legit_type = ['tool', 'daemon-direct', 'daemon-disrupt', 'daemon-cluster', 'reboot',
+                  'reboot-cluster', 'library']
     downgrade = False
-
 
     def __init__(self, updatespec, supported_distros):
         '''
         Parse an update spec file.
 
         updatespec        : Filename of the update spec file (string)
-        supported_distros : These are the distro codenames for which a fixed version can be provided (list of strings)
+        supported_distros : These are the distro codenames for which a fixed version can be provided
+                            (list of strings)
         '''
 
         try:
@@ -33,22 +33,24 @@ class DebDeployUpdateSpec(object):
                 updatefile = yaml.load(stream)
 
         except IOError:
-            print("Error: Could not open", updatespec)
+            print("Error: Could not open {}".format(updatespec))
             sys.exit(1)
 
-        except yaml.scanner.ScannerError, e:
+        except yaml.scanner.ScannerError as e:
             print("Invalid YAML file:")
             print(e)
             sys.exit(1)
 
-        if not updatefile.has_key("source"):
-            print("Invalid YAML file, you need to specify the source package using the 'source' stanza, see the annotated example file for details")
+        if "source" not in updatefile:
+            print(("Invalid YAML file, you need to specify the source package using the 'source' "
+                   "stanza, see the annotated example file for details"))
             sys.exit(1)
         else:
             self.source = updatefile["source"]
 
-        if not updatefile.has_key("update_type"):
-            print("Invalid YAML file, you need to specify the type of update using the 'update_type' stanza, see the annotated example file for details")
+        if "update_type" not in updatefile:
+            print(("Invalid YAML file, you need to specify the type of update using the "
+                   "'update_type' stanza, see the annotated example file for details"))
             sys.exit(1)
         else:
             if updatefile["update_type"] not in self.legit_type:
@@ -56,24 +58,26 @@ class DebDeployUpdateSpec(object):
                 sys.exit(1)
             self.update_type = updatefile["update_type"]
 
-        if updatefile.has_key("comment"):
+        if "comment" in updatefile:
             self.comment = updatefile["comment"]
 
-        if updatefile.has_key("libraries"):
+        if "libraries" in updatefile:
             self.libraries = updatefile["libraries"]
 
         if "downgrade" in updatefile:
             self.downgrade = updatefile["downgrade"]
 
-        if not updatefile.has_key("fixes"):
-            print("Invalid YAML file, you need to specify at least one fixed version using the 'fixes' stanza, see the annotated example file for details")
+        if "fixes" not in updatefile:
+            print(("Invalid YAML file, you need to specify at least one fixed version using the "
+                   "'fixes' stanza, see the annotated example file for details"))
             sys.exit(1)
         else:
             for i in updatefile["fixes"]:
-                if len(supported_distros.keys()) >= 1:
+                if len(list(supported_distros.keys())) >= 1:
                     self.fixes[i] = updatefile["fixes"].get(i)
                 else:
-                    print("Invalid YAML file,", i, "is not a supported distribution. You need to activate it in /deb/debdeploy.conf")
+                    print(("Invalid YAML file, {} is not a supported distribution. You need to "
+                           "activate it in /deb/debdeploy.conf".format(i)))
                     sys.exit(1)
 
 # Local variables:

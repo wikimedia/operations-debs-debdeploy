@@ -1,5 +1,5 @@
-server/debdeploy_updatespec.py /usr/lib/python2.7/dist-packages/
-server/debdeploy_conf.py /usr/lib/python2.7/dist-packages/
+server/debdeploy_updatespec.py /usr/lib/python3/dist-packages/
+server/debdeploy_conf.py /usr/lib/python3/dist-packages/
 server/debdeploy /usr/sbin
 server/generate-debdeploy-spec /usr/bin
 server/rollback-update /usr/bin
