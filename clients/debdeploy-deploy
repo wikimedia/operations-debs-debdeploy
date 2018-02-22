@@ -1,8 +1,6 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: utf-8 -*-
 """Module for deploying DEB packages on wide scale."""
-
-from __future__ import print_function
 
 import argparse
 import json
@@ -49,7 +47,7 @@ def setup_logger(verbose=False, console_output=False):
 
     log_path = os.path.dirname(log_file)
     if not os.path.exists(log_path):
-        os.makedirs(log_path, 0770)
+        os.makedirs(log_path, 0o770)
 
     log_formatter = logging.Formatter(fmt='%(asctime)s (%(levelname)s) %(message)s')
     log_handler = RotatingFileHandler(log_file, maxBytes=(5 * (1024**2)), backupCount=30)
@@ -97,7 +95,7 @@ def get_installed_binary_packages(source):
     # file. The format is a bit erratic: The Source: line is only present for
     # binary packages not having the same name as the binary package
     installed_binary_packages = []
-    for pkg in deb822.Packages.iter_paragraphs(file('/var/lib/dpkg/status')):
+    for pkg in deb822.Packages.iter_paragraphs(open('/var/lib/dpkg/status')):
 
         # skip packages in deinstalled status ("rc" in dpkg). These are irrelevant for
         # upgrades and cause problems when binary package names have changed (since
@@ -127,7 +125,7 @@ def list_pkgs():
     pkgs = {}
 
     try:
-        osarch = subprocess.check_output(['dpkg', '--print-architecture'])
+        osarch = subprocess.check_output(['dpkg', '--print-architecture'], universal_newlines=True)
     except subprocess.CalledProcessError as e:
         logger.info('Could not determine host architecture: %s', e.returncode)
         sys.exit(1)
@@ -136,7 +134,7 @@ def list_pkgs():
         installed_packages = subprocess.check_output(
             ['dpkg-query',
              "--showformat='${Status} ${Package} ${Version} ${Architecture}\n'",
-             '-W'])
+             '-W'], universal_newlines=True)
     except subprocess.CalledProcessError as e:
         logger.info('Could not determine list of installed packages: %s', e.returncode)
         sys.exit(1)
@@ -184,7 +182,8 @@ def install_pkgs(binary_packages, version_num, downgrade=False):
     logger.debug('apt invocation: %s', cmd)
 
     try:
-        update = (0, subprocess.check_output(cmd, stderr=subprocess.STDOUT))
+        update = (0, subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                             universal_newlines=True))
     except subprocess.CalledProcessError as e:
         update = (e.returncode, e.output)
 
@@ -245,7 +244,8 @@ def main():
             logger.info('apt-get update failed: %s', e.returncode)
 
     old = list_pkgs()
-    apt_output = install_pkgs(installed_binary_packages, versions.get(installed_distro, None), downgrade=args.downgrade)
+    apt_output = install_pkgs(installed_binary_packages, versions.get(installed_distro, None),
+                              downgrade=args.downgrade)
     new = list_pkgs()
 
     old_keys = set(old.keys())

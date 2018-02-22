@@ -1,10 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 '''
 Module for querying installed reverse dependencies of a package
 '''
-
-from __future__ import print_function
 
 import argparse
 import json
@@ -45,12 +43,13 @@ def main():
     args = parse_args()
 
     try:
-        rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.packages, stderr=subprocess.STDOUT)
+        rev_deps = subprocess.check_output(['apt-cache', '--installed', 'rdepends'] + args.packages,
+                                           stderr=subprocess.STDOUT, universal_newlines=True)
     except subprocess.CalledProcessError as e:
         if e.output.startswith('E: No packages found'):
             return result(False, 'INVALID_PACKAGE', [])
 
-        print('Failed to query reverse dependies', e.returncode)
+        print(('Failed to query reverse dependies', e.returncode))
         return result(False, 'QUERY_FAIL', [])
 
     deps = set()

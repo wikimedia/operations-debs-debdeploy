@@ -1,10 +1,8 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: utf-8 -*-
 '''
 Module for listing necessary service restarts after library updates
 '''
-
-from __future__ import print_function
 
 import logging
 import pickle
@@ -15,7 +13,6 @@ import platform
 import sys
 import argparse
 import json
-import ConfigParser
 from logging.handlers import RotatingFileHandler
 from debian import deb822
 
@@ -39,7 +36,7 @@ def setup_logger(verbose=False, console_output=False):
 
     log_path = os.path.dirname(log_file)
     if not os.path.exists(log_path):
-        os.makedirs(log_path, 0770)
+        os.makedirs(log_path, 0o770)
 
     log_formatter = logging.Formatter(fmt='%(asctime)s (%(levelname)s) %(message)s')
     log_handler = RotatingFileHandler(log_file, maxBytes=(5 * (1024**2)), backupCount=30)
@@ -69,7 +66,8 @@ def get_deleted_files():
     false_positives = ['/dev/zero']
 
     try:
-        del_files = subprocess.check_output(["lsof", "+c", "15", "-nXd", "DEL"])
+        del_files = subprocess.check_output(["lsof", "+c", "15", "-nXd", "DEL"],
+                                            universal_newlines=True)
     except subprocess.CalledProcessError as e:
         logger.info("Could not determine host architecture", e.returncode)
         sys.exit(1)
