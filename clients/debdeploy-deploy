@@ -129,7 +129,7 @@ def list_pkgs():
     try:
         osarch = subprocess.check_output(['dpkg', '--print-architecture'])
     except subprocess.CalledProcessError as e:
-        logger.info('Could not determine host architecture', e.returncode)
+        logger.info('Could not determine host architecture: %s', e.returncode)
         sys.exit(1)
 
     try:
@@ -138,7 +138,7 @@ def list_pkgs():
              "--showformat='${Status} ${Package} ${Version} ${Architecture}\n'",
              '-W'])
     except subprocess.CalledProcessError as e:
-        logger.info('Could not determine list of installed packages', e.returncode)
+        logger.info('Could not determine list of installed packages: %s', e.returncode)
         sys.exit(1)
 
     for line in installed_packages.splitlines():
@@ -181,7 +181,7 @@ def install_pkgs(binary_packages, version_num, downgrade=False):
     cmd.append('install')
     cmd.extend(targets)
 
-    logger.debug('apt invocation: ', cmd)
+    logger.debug('apt invocation: %s', cmd)
 
     try:
         update = (0, subprocess.check_output(cmd, stderr=subprocess.STDOUT))
@@ -216,7 +216,7 @@ def main():
     """
     args = parse_args(sys.argv[1:])
 
-    setup_logger(verbose=False, console_output=args.console)
+    setup_logger(args.verbose, console_output=args.console)
 
     versions = {}
     for spec in args.updatespec:
@@ -228,22 +228,21 @@ def main():
         return result(False, 'INVALID_DISTRO', {})
 
     if versions.get(installed_distro, None) is None:
-        logger.info("Update doesn't apply to the installed distribution (" + str(installed_distro))
+        logger.info("Update doesn't apply to the installed distribution (%s)", installed_distro)
         return result(True, "OSDIFFERS", {})
 
     installed_binary_packages = get_installed_binary_packages(args.source)
-    logger.debug('Installed binary packages for ' + args.source +
-                 ': ' + str(installed_binary_packages))
+    logger.debug('Installed binary packages for %s: %s', args.source, installed_binary_packages)
 
     if len(installed_binary_packages) == 0:
-        logger.info('No binary packages installed for source package ' + args.source)
+        logger.info('No binary packages installed for source package %s', args.source)
         return result(True, "NOBINARY", {})
 
     if args.run_apt_update:
         try:
             subprocess.call(['apt-get', 'update'])
         except subprocess.CalledProcessError as e:
-            logger.info('apt-get update failed: ', e.returncode)
+            logger.info('apt-get update failed: %s', e.returncode)
 
     old = list_pkgs()
     apt_output = install_pkgs(installed_binary_packages, versions.get(installed_distro, None), downgrade=args.downgrade)
@@ -255,7 +254,7 @@ def main():
     intersect = old_keys.intersection(new_keys)
     modified = {x: (old[x], new[x]) for x in intersect if old[x] != new[x]}
 
-    logger.info('Modified packages: ' + str(modified))
+    logger.info('Modified packages: %s', modified)
 
     if not modified:
         return result(True, 'NOCHANGE', modified)
