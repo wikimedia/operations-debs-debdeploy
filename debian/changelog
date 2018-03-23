@@ -1,3 +1,10 @@
+debdeploy (0.0.99.3-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  * Switch clients to Python 3
+  * Fix verbose logging in debdeploy-deploy
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 23 Mar 2018 16:05:56 +0100
+
 debdeploy (0.0.99.2-1+deb9u1) stretch-wikimedia; urgency=medium
 
   * Remove a stray import of salt.client
