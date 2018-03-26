@@ -1,3 +1,9 @@
+debdeploy (0.0.99.4-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  * Use deterministic order for results passed by the clients
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Mon, 26 Mar 2018 11:49:32 +0200
+
 debdeploy (0.0.99.3-1+deb9u1) stretch-wikimedia; urgency=medium
 
   * Switch clients to Python 3
