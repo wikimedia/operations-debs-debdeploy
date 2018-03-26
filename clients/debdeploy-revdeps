@@ -5,6 +5,7 @@ Module for querying installed reverse dependencies of a package
 '''
 
 import argparse
+import collections
 import json
 import subprocess
 import sys
@@ -28,7 +29,7 @@ def result(success, status, rev_deps):
     rev_deps: List of reverse dependency packages
     '''
 
-    data = {}
+    data = collections.OrderedDict()
     data['success'] = success
     data['status'] = status
     data['data'] = rev_deps

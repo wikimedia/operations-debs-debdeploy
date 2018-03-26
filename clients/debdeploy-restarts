@@ -13,6 +13,7 @@ import platform
 import sys
 import argparse
 import json
+import collections
 from logging.handlers import RotatingFileHandler
 from debian import deb822
 
@@ -94,7 +95,7 @@ def result(success, status, restarts_needed):
         of PIDs with a list of file references
     '''
 
-    data = {}
+    data = collections.OrderedDict()
     data['success'] = success
     data['status'] = status
     data['data'] = restarts_needed

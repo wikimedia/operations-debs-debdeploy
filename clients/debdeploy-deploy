@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import collections
 
 from logging.handlers import RotatingFileHandler
 
@@ -199,7 +200,7 @@ def result(success, status, updated_packages):
         previous and the new version
     '''
 
-    data = {}
+    data = collections.OrderedDict()
     data['success'] = success
     data['status'] = status
     data['data'] = updated_packages
