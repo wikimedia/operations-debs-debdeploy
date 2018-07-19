@@ -37,7 +37,7 @@ logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log',
 
 def show_unreachable_hosts(worker):
     unreachable_hosts = []
-    for node in worker._handler_instance.nodes.itervalues():
+    for node in worker._handler_instance.nodes.values():
         if node.state.is_failed:
             unreachable_hosts.append(node.name)
 
@@ -115,7 +115,7 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
 
     status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
-        msg = str(output)
+        msg = output.message().decode('utf-8')
         try:
             result = json.loads(msg)
 
@@ -169,7 +169,7 @@ def detect_restarts(libnames, servergroup):
 
     restarts_per_lib = defaultdict(lambda: defaultdict(cumin.NodeSet))
     for nodeset, output in worker.get_results():
-        msg = str(output)
+        msg = output.message().decode('utf-8')
 
         try:
             result = json.loads(msg)
@@ -212,7 +212,7 @@ def detect_rev_deps(pkgnames, servergroup):
 
     status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
-        msg = str(output)
+        msg = output.message().decode('utf-8')
 
         try:
             result = json.loads(msg)
@@ -259,7 +259,7 @@ def detect_package_versions(pkgnames, servergroup):
 
     status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
-        msg = str(output)
+        msg = output.message().decode('utf-8')
 
         try:
             result = json.loads(msg)

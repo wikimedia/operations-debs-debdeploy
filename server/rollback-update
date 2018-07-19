@@ -33,7 +33,7 @@ def main():
         if old_update.fixes[distro]:
             print("Please specify the version to downgrade to")
             readline.set_startup_hook(lambda: readline.insert_text(old_update.fixes[distro]))
-            downgrade_fixes[distro] = raw_input('>')
+            downgrade_fixes[distro] = input('>')
 
     try:
         with open(yamlfilename, "w") as yamlfile:

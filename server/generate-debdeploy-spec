@@ -17,12 +17,12 @@ fixes = {}
 libraries = []
 
 while source == "":
-    source = raw_input("Please enter the name of source package (e.g. openssl). Leave blank or type 'quit' to abort\n>").strip()
+    source = input("Please enter the name of source package (e.g. openssl). Leave blank or type 'quit' to abort\n>").strip()
     if source == "" or source == "quit":
         print("Aborting")
         sys.exit(1)
 
-comment = raw_input('You can enter an optional comment, e.g. a reference to a security advisory or a CVE ID mapping\n>').strip()
+comment = input('You can enter an optional comment, e.g. a reference to a security advisory or a CVE ID mapping\n>').strip()
 if comment == "quit":
     print("Aborting")
     sys.exit(1)
@@ -39,13 +39,13 @@ while updatetype not in ['tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'l
     print("                  restarted to fully effect the change. In addition")
     print("                  to libs, some applications may also fall under this rule,")
     print("                  e.g. when updating QEMU, you might need to restart VMs.")
-    updatetype = raw_input("Please enter the update type:\n>").strip()
+    updatetype = input("Please enter the update type:\n>").strip()
     if source == "" or source == "quit":
         print("Aborting")
         sys.exit(1)
 
 for i in conf.supported_distros:
-    fixes[i] = raw_input("Please enter the version which fixed in in " + i + ". Leave blank if no fix is available/required for a given distro.\n>").strip()
+    fixes[i] = input("Please enter the version which fixed in in " + i + ". Leave blank if no fix is available/required for a given distro.\n>").strip()
 
 at_least_one_fixed_version = False
 for i in fixes.values():
@@ -64,7 +64,7 @@ if updatetype == 'library':
     if conf.library_hints.get(source, None):
         readline.set_startup_hook(lambda: readline.insert_text(",".join(conf.library_hints[source])))
 
-    libinput = raw_input("Please enter the name of one or several libraries. Leave blank to skip \n>").strip()
+    libinput = input("Please enter the name of one or several libraries. Leave blank to skip \n>").strip()
     if libinput:
         for i in libinput.split(","):
             libraries.append(i.strip())
@@ -74,7 +74,7 @@ suggested_name = datetime.datetime.now().strftime("%Y-%m-%d-") + source + ".yaml
 while not valid_name:
     print("Please enter a name under which the YAML file should be created")
     readline.set_startup_hook(lambda: readline.insert_text(suggested_name))
-    yamlfilename = raw_input('>').strip()
+    yamlfilename = input('>').strip()
     if not yamlfilename:
         yamlfilename = suggested_name
     if os.path.exists(yamlfilename):
@@ -94,7 +94,7 @@ try:
         yamlfile.write('libraries:\n')
         for i in libraries:
             yamlfile.write("      - " + i + "\n")
-except IOError, e:
+except IOError as e:
     print("Error: {}".format(e))
     sys.exit(1)
 
