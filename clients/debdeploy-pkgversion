@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 '''
-Module for querying installed reverse dependencies of a package
+Query installed package versions (used by "query_version" command)'
 '''
 
 import argparse
@@ -14,7 +14,7 @@ from debian import deb822
 
 def parse_args():
     p = argparse.ArgumentParser(
-        description='debdeploy-revdeps - Query for installed reverse dependencies')
+        description='debdeploy-pkgversion - Query installed package versions (used by "query_version" command)')
     p.add_argument('packages', action='store', nargs='+')
 
     args = p.parse_args(sys.argv[1:])

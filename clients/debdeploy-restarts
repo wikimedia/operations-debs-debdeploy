@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 '''
-Module for listing necessary service restarts after library updates
+Module for listing necessary service restarts after a library update (used by "query_restart" command)
 '''
 
 import logging
@@ -22,7 +22,7 @@ logger = logging.getLogger('debdeploy')
 
 def parse_args():
     p = argparse.ArgumentParser(
-        description='debdeploy-deploy - Deploy a software update')
+        description='debdeploy-restarts - List necessary restarts after library update (used by "query_restart" command)')
     p.add_argument('--console', action='store_true', default=False,
                    help='Enable additional console output')
     p.add_argument('--libname', action='store', nargs='+', required=True)
