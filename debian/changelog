@@ -1,3 +1,9 @@
+debdeploy (0.0.99.6-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  * Fix query_restarts with pending library restarts with Python 3
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Thu, 20 Sep 2018 17:30:19 +0200
+
 debdeploy (0.0.99.5-1+deb9u1) stretch-wikimedia; urgency=medium
 
   * Migrate the server side of Debdeploy to Python3
