@@ -1,3 +1,9 @@
+debdeploy (0.0.99.7-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  * Bail out if debdeploy-deploy isn't run as root
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Wed, 17 Oct 2018 14:14:37 +0200
+
 debdeploy (0.0.99.6-1+deb9u1) stretch-wikimedia; urgency=medium
 
   * Fix query_restarts with pending library restarts with Python 3
