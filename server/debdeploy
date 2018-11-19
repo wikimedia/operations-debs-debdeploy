@@ -293,7 +293,7 @@ def main():
                    status-rollback")
 
     subp = p.add_subparsers(title='Command', description='Valid commands', dest='command')
-    parser_deps = subp.add_parser('query_deps', help='Query for necessary restarts after a library or interpreter upgrade')
+    parser_deps = subp.add_parser('query_deps', help='Query reverse dependencies of a given package')
     parser_deps.add_argument('--packages', action='store', nargs='+',
                              help="Packages to query reverse dependencies", required=True)
     parser_deps.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
