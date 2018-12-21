@@ -15,6 +15,7 @@ comment = ""
 updatetype = ""
 fixes = {}
 libraries = []
+transition_binary_packages = {}
 
 while source == "":
     source = input("Please enter the name of source package (e.g. openssl). Leave blank or type 'quit' to abort\n>").strip()
@@ -69,6 +70,30 @@ if updatetype == 'library':
         for i in libinput.split(","):
             libraries.append(i.strip())
 
+print("Usually every upgrade only modifies existing package names. There are rare exceptions")
+print("e.g. if a rebase to a new upstream release is necessary. You can optionally enter a ")
+print("comma-separated list of binary package names which are being switched to a new name.")
+changed_binary_names = input('Leave blank to skip\n>').strip()
+if changed_binary_names:
+    for i in changed_binary_names.split(','):
+        cur_pkgname = i.strip()
+        readline.set_startup_hook(lambda: readline.insert_text(cur_pkgname))
+        new_pkgname = input('Enter the name of the binary package which will replace '
+                            + cur_pkgname + ' (leave blank to skip) \n>').strip()
+              % (cur_pkgname, new_pkgname))
+        if cur_pkgname == new_pkgname:
+            print("Package name remains the same, skipping")
+            continue
+        print('Is %s a package which can be removed once it has been replaced by %s?'
+        print('If the old package should be removed, type "y" otherwise it will remain installed')
+        print('This is useful if e.g. a program builds a library for internal use only')
+        replacement = 'keep'
+        readline.set_startup_hook(lambda: readline.insert_text("y"))
+        if input('>').strip().lower() == 'y':
+            replacement = 'delete'
+
+        transition_binary_packages[cur_pkgname] = ("%s %s" % (new_pkgname, replacement))
+
 valid_name = False
 suggested_name = datetime.datetime.now().strftime("%Y-%m-%d-") + source + ".yaml"
 while not valid_name:
@@ -94,6 +119,10 @@ try:
         yamlfile.write('libraries:\n')
         for i in libraries:
             yamlfile.write("      - " + i + "\n")
+        yamlfile.write('transitions:\n')
+        if transition_binary_packages:
+            for i in transition_binary_packages:
+                yamlfile.write("        " + i + ": " + transition_binary_packages[i] + "\n")
 except IOError as e:
     print("Error: {}".format(e))
     sys.exit(1)
