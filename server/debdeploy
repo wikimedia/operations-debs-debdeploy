@@ -293,6 +293,7 @@ def main():
                    status-rollback")
 
     subp = p.add_subparsers(title='Command', description='Valid commands', dest='command')
+    subp.required = True
     parser_deps = subp.add_parser('query_deps', help='Query reverse dependencies of a given package')
     parser_deps.add_argument('--packages', action='store', nargs='+',
                              help="Packages to query reverse dependencies", required=True)
