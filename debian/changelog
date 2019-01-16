@@ -1,8 +1,12 @@
 debdeploy (0.0.99.7-1+deb9u1) stretch-wikimedia; urgency=medium
 
+  [ Moritz Muehlenhoff ]
   * Bail out if debdeploy-deploy isn't run as root
 
- -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Wed, 17 Oct 2018 14:14:37 +0200
+  [ John Bond ]
+  * Ensure debdeploy exits cleanly when called without any arguments
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Wed, 16 Jan 2019 12:14:37 +0200
 
 debdeploy (0.0.99.6-1+deb9u1) stretch-wikimedia; urgency=medium
 
