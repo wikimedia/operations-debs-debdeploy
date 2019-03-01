@@ -4,21 +4,26 @@
 Module for listing necessary service restarts after a library update (used by "query_restart" command)
 '''
 
-import logging
 import subprocess
 import os
 import sys
 import argparse
 import json
 import collections
+import logging
 from logging.handlers import RotatingFileHandler
+from psutil import Process, NoSuchProcess
 
 logger = logging.getLogger('debdeploy')
+CONF_FILE = '/etc/debdeploy-client/autorestarts.conf'
 
 
 def parse_args():
     p = argparse.ArgumentParser(
         description='debdeploy-restarts - List necessary restarts after library update (used by "query_restart" command)')
+    p.add_argument('--printall', action='store_true',
+                   help='Services which are automatically restarted are not shown by default.'
+                   'Enabling this option displays them nonetheless')
     p.add_argument('--console', action='store_true', default=False,
                    help='Enable additional console output')
     p.add_argument('--libname', action='store', nargs='+', required=True)
@@ -66,7 +71,7 @@ def get_deleted_files():
         del_files = subprocess.check_output(["lsof", "+c", "15", "-nXd", "DEL"],
                                             universal_newlines=True)
     except subprocess.CalledProcessError as e:
-        logger.info("Could not determine host architecture", e.returncode)
+        logger.info("Could not determine host architecture: %s", e.returncode)
         sys.exit(1)
 
     for line in del_files.splitlines():
@@ -99,6 +104,38 @@ def result(success, status, restarts_needed):
     return json.dumps(data)
 
 
+def service_to_pids(service):
+    """given a service name return the PID and all Child PID's"""
+    pids = []
+    try:
+        pid_query = subprocess.check_output(
+            ['/bin/systemctl', 'show', '-p', 'MainPID', service],
+            universal_newlines=True)
+    except subprocess.CalledProcessError as error:
+        logger.info("Could not query the PID of %s: %s", service, error.returncode)
+        return pids
+    main_pid = int(pid_query.split('=')[1])
+    if main_pid == 0:
+        # Service using legacy init script and systemd-sysv-generator
+        # try to use pidof
+        try:
+            pids = subprocess.check_output(
+                ['/bin/pidof', service], universal_newlines=True).split()
+            return pids
+        except subprocess.CalledProcessError:
+            logger.warning("unable to determine pid for: %s", service)
+            return pids
+    try:
+        parent = Process(main_pid)
+    except NoSuchProcess:
+        logger.info('PID %s is not active', main_pid)
+        return pids
+    pids.append(main_pid)
+    for child in parent.children(recursive=True):
+        pids.append(child.pid)
+    return pids
+
+
 def main():
     '''
     Updates all installed binary packages of the source package
@@ -111,12 +148,19 @@ def main():
     deleted_files = get_deleted_files()
     restarts_needed = collections.defaultdict(set)
     return_restarts = {}
+    auto_restarts_pids = []
+
+    if not args.printall:
+        with open(CONF_FILE, 'r') as config:
+            for service in config.readlines():
+                auto_restarts_pids += service_to_pids(service.strip())
 
     for i in deleted_files:
         procname, pid, fname = (i)
         for libname in args.libname:
             if fname.find(libname) != -1:
-                restarts_needed[fname].add(procname)
+                if int(pid) not in auto_restarts_pids:
+                    restarts_needed[fname].add(procname)
 
     for i in restarts_needed.keys():
         return_restarts[i] = list(restarts_needed[i])
