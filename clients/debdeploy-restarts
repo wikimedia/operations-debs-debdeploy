@@ -5,17 +5,13 @@ Module for listing necessary service restarts after a library update (used by "q
 '''
 
 import logging
-import pickle
 import subprocess
 import os
-import re
-import platform
 import sys
 import argparse
 import json
 import collections
 from logging.handlers import RotatingFileHandler
-from debian import deb822
 
 logger = logging.getLogger('debdeploy')
 
@@ -113,7 +109,7 @@ def main():
     setup_logger(False, args.console)
 
     deleted_files = get_deleted_files()
-    restarts_needed = {}
+    restarts_needed = collections.defaultdict(set)
     return_restarts = {}
 
     for i in deleted_files:
@@ -121,9 +117,6 @@ def main():
         for libname in args.libname:
             if fname.find(libname) != -1:
                 if not restarts_needed.get(fname, None):
-                    restarts_needed[fname] = set()
-                    restarts_needed[fname].add(procname)
-                else:
                     restarts_needed[fname].add(procname)
 
     for i in restarts_needed.keys():
