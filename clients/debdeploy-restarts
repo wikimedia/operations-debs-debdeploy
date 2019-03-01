@@ -116,8 +116,7 @@ def main():
         procname, pid, fname = (i)
         for libname in args.libname:
             if fname.find(libname) != -1:
-                if not restarts_needed.get(fname, None):
-                    restarts_needed[fname].add(procname)
+                restarts_needed[fname].add(procname)
 
     for i in restarts_needed.keys():
         return_restarts[i] = list(restarts_needed[i])
