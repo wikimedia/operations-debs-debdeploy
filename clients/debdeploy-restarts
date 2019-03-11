@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#! /usr/bin/python3  # pylint: disable=invalid-name
 # -*- coding: utf-8 -*-
 '''
 Module for listing necessary service restarts after a library update (used by "query_restart" command)
@@ -14,26 +14,33 @@ import logging
 from logging.handlers import RotatingFileHandler
 from psutil import Process, NoSuchProcess
 
-logger = logging.getLogger('debdeploy')
-CONF_FILE = '/etc/debdeploy-client/autorestarts.conf'
+logger = logging.getLogger('debdeploy')  # pylint: disable=invalid-name
+AUTO_RESTARTS_FILE = '/etc/debdeploy-client/autorestarts.conf'
+CONF_FILE = '/etc/debdeploy-client/config.json'
 
 
 def parse_args():
-    p = argparse.ArgumentParser(
-        description='debdeploy-restarts - List necessary restarts after library update (used by "query_restart" command)')
-    p.add_argument('--printall', action='store_true',
-                   help='Services which are automatically restarted are not shown by default.'
-                   'Enabling this option displays them nonetheless')
-    p.add_argument('--console', action='store_true', default=False,
-                   help='Enable additional console output')
-    p.add_argument('--libname', action='store', nargs='+', required=True)
+    """Configure and parse arguments"""
+    parser = argparse.ArgumentParser(
+        description=(
+            'debdeploy-restarts - List necessary restarts after library update'
+            '(used by "query_restart" command)'
+        )
+    )
+    parser.add_argument('--printall', action='store_true',
+                        help='Services which are automatically restarted are not shown by default.'
+                        'Enabling this option displays them nonetheless')
+    parser.add_argument('--console', action='store_true', default=False,
+                        help='Enable additional console output')
+    parser.add_argument('--libname', action='store', nargs='+', required=True)
 
-    args = p.parse_args(sys.argv[1:])
+    args = parser.parse_args()
 
     return args
 
 
 def setup_logger(verbose=False, console_output=False):
+    '''Setup the logger interface'''
     log_file = "/var/log/debdeploy/updates.log"
 
     log_path = os.path.dirname(log_file)
@@ -56,7 +63,7 @@ def setup_logger(verbose=False, console_output=False):
         logger.setLevel(logging.INFO)
 
 
-def get_deleted_files():
+def get_deleted_files(exclude_mounts=None):
     '''
     This function returns a list open file handles, which have a reference to deleted
     files, this usually occurs after library upgrades. The original code in debdepoy
@@ -66,12 +73,15 @@ def get_deleted_files():
 
     deleted_files = []
     false_positives = ['/dev/zero']
+    command = ["lsof", "+c", "15", "-nXd", "DEL"]
+    if isinstance(exclude_mounts, list):
+        for mount in exclude_mounts:
+            command += ['-e', mount]
 
     try:
-        del_files = subprocess.check_output(["lsof", "+c", "15", "-nXd", "DEL"],
-                                            universal_newlines=True)
-    except subprocess.CalledProcessError as e:
-        logger.info("Could not determine host architecture: %s", e.returncode)
+        del_files = subprocess.check_output(command, universal_newlines=True)
+    except subprocess.CalledProcessError as error:
+        logger.info("Could not determine host architecture: %s", error.returncode)
         sys.exit(1)
 
     for line in del_files.splitlines():
@@ -145,14 +155,20 @@ def main():
 
     setup_logger(False, args.console)
 
-    deleted_files = get_deleted_files()
+    config = {}
     restarts_needed = collections.defaultdict(set)
     return_restarts = {}
     auto_restarts_pids = []
 
-    if not args.printall:
-        with open(CONF_FILE, 'r') as config:
-            for service in config.readlines():
+    if os.path.isfile(CONF_FILE):
+        with open(CONF_FILE) as config_file:
+            config = json.load(config_file)
+
+    deleted_files = get_deleted_files(config.get('exclude_mounts', []))
+
+    if not args.printall and os.path.isfile(AUTO_RESTARTS_FILE):
+        with open(AUTO_RESTARTS_FILE, 'r') as auto_restarts_file:
+            for service in auto_restarts_file.readlines():
                 auto_restarts_pids += service_to_pids(service.strip())
 
     for i in deleted_files:
@@ -165,13 +181,12 @@ def main():
     for i in restarts_needed.keys():
         return_restarts[i] = list(restarts_needed[i])
 
-    if len(restarts_needed) == 0:
+    if not restarts_needed:
         return result(True, "NO_RESTARTS_NEEDED", {})
-    else:
-        logger.info("These services need a restart:")
-        for i in restarts_needed:
-            logger.info(i + " (" + str(len(restarts_needed)) + " processes)")
-        return result(True, "RESTARTS", return_restarts)
+    logger.info("These services need a restart:")
+    for i in restarts_needed:
+        logger.info("%s (%d processes)", i, len(restarts_needed))
+    return result(True, "RESTARTS", return_restarts)
 
 
 if __name__ == '__main__':
