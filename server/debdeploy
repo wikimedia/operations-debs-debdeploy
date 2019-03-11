@@ -154,16 +154,24 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
     show_unreachable_hosts(worker)
 
 
-def detect_restarts(libnames, servergroup):
+def detect_restarts(libnames, servergroup, printall):
     '''
     Query for necessary restarts after a library or interpreter upgrade
 
     libnames    : A list of library base names, e.g. libssl for
                   /usr/lib/x86_64-linux-gnu/libssl.so.1.0.0 (list of strings)
     servergroup : The name of the server group for which process restarts should be queried (string)
+    printall    : If some services are automatically restarted in an environment, these restarts
+                  can be automatically filtered by the Debdeploy client. This is enabled by default.
+                  In some cases (e.g. to verify whether the automatic restart works fine) it may
+                  be useful to still display the full list of pending restarts. This is option
+                  is passed, no filtering takes place (boolean)
     '''
 
     cmd = '/usr/bin/debdeploy-restarts --libname ' + ' '.join(libnames)
+
+    if printall:
+        cmd += ' --printall'
 
     worker = run_cumin(cmd, servergroup)
 
@@ -313,6 +321,12 @@ def main():
     parser_restart.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
                                 help="The group of servers for which necessary service restarts should be detected",
                                 required=True)
+    parser_restart.add_argument("--printall", action="store_true",
+                                help="If some services are automatically restarted in an environment, these \
+                                restarts can be automatically filtered by the Debdeploy client. This is \
+                                enabled by default. In some cases (e.g. to verify whether the automatic \
+                                restart works fine) it may be useful to still display the full list of \
+                                pending restarts. This is option is enabled, no filtering takes place")
     parser_restart.add_argument("-u", "--update", action="store", type=str, dest="updatefile",
                                 help="A YAML file containing the update specification (which source package to \
                                 update and the respective fixed versions", required=True)
@@ -338,7 +352,7 @@ def main():
 
     elif opt.command == "query_restart":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
-        detect_restarts(update.libraries, opt.serverlist)
+        detect_restarts(update.libraries, opt.serverlist, opt.printall)
 
     elif opt.command == "query_deps":
         detect_rev_deps(opt.packages, opt.serverlist)
