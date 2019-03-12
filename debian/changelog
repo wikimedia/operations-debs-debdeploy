@@ -1,3 +1,10 @@
+debdeploy (0.0.99.8-1+deb9u2) stretch-wikimedia; urgency=medium
+
+  [ John Bond ]
+  * Fix shebang regression in client/debdeploy-restarts
+
+ -- John Bond <jbond@wikimedia.org>  Tue, 12 Mar 2019 15:59:53 +0000
+
 debdeploy (0.0.99.8-1+deb9u1) stretch-wikimedia; urgency=medium
 
   [ Moritz Muehlenhoff ]

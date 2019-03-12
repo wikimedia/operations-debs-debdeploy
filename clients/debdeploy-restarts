@@ -1,4 +1,4 @@
-#! /usr/bin/python3  # pylint: disable=invalid-name
+#! /usr/bin/python3
 # -*- coding: utf-8 -*-
 '''
 Module for listing necessary service restarts after a library update (used by "query_restart" command)
