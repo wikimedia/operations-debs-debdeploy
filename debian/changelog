@@ -1,12 +1,20 @@
+debdeploy (0.0.99.8-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  [ Moritz Muehlenhoff ]
+  * Add option to debdeploy server to also show automated restarts
+
+  [ John Bond ]
+  * Add ability to filter out auto restarts
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Tue, 12 Mar 2019 15:38:13 +0100
+
 debdeploy (0.0.99.7-1+deb9u1) stretch-wikimedia; urgency=medium
 
   [ Moritz Muehlenhoff ]
   * Bail out if debdeploy-deploy isn't run as root
-  * Add option to debdeploy server to also show automated restarts
 
   [ John Bond ]
   * Ensure debdeploy exits cleanly when called without any arguments
-  * Add ability to filter out auto restarts
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Mon, 11 Mar 2019 17:27:37 +0200
 
