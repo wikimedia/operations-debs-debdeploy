@@ -165,15 +165,19 @@ def main():
             config = json.load(config_file)
 
     deleted_files = get_deleted_files(config.get('exclude_mounts', []))
+    filter_restarts = config.get('filter_services', {})
 
     if not args.printall and os.path.isfile(AUTO_RESTARTS_FILE):
         with open(AUTO_RESTARTS_FILE, 'r') as auto_restarts_file:
             for service in auto_restarts_file.readlines():
                 auto_restarts_pids += service_to_pids(service.strip())
 
-    for i in deleted_files:
-        procname, pid, fname = (i)
+    for procname, pid, fname in deleted_files:
+        if filter_restarts.get(procname, [None])[0] == '*':
+            continue
         for libname in args.libname:
+            if libname in filter_restarts.get(procname, []):
+                continue
             if fname.find(libname) != -1:
                 if int(pid) not in auto_restarts_pids:
                     restarts_needed[fname].add(procname)
