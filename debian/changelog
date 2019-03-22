@@ -1,3 +1,11 @@
+debdeploy (0.0.99.9-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  [ John Bond ]
+  * Add option to filter file systems from lsof commands
+  * Add option to filter out services which don't actually need a restart
+
+ -- John Bond <jbond@wikimedia.org>  Fri, 22 Mar 2019 12:09:09 +0000
+
 debdeploy (0.0.99.8-1+deb9u2) stretch-wikimedia; urgency=medium
 
   [ John Bond ]

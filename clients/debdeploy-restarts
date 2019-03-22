@@ -63,7 +63,14 @@ def setup_logger(verbose=False, console_output=False):
         logger.setLevel(logging.INFO)
 
 
-def get_deleted_files(exclude_mounts=None):
+def get_mounts(filesystems):
+    '''Return an array of mount points matching file systems'''
+    with open('/proc/mounts', 'r') as proc_mounts:
+        mounts = [line.split() for line in proc_mounts.readlines()]
+        return [mount[1] for mount in mounts if mount[2] in filesystems]
+
+
+def get_deleted_files(exclude_mounts=None, exclude_filesystems=None):
     '''
     This function returns a list open file handles, which have a reference to deleted
     files, this usually occurs after library upgrades. The original code in debdepoy
@@ -76,6 +83,9 @@ def get_deleted_files(exclude_mounts=None):
     command = ["lsof", "+c", "15", "-nXd", "DEL"]
     if isinstance(exclude_mounts, list):
         for mount in exclude_mounts:
+            command += ['-e', mount]
+    if isinstance(exclude_filesystems, list):
+        for mount in get_mounts(exclude_mounts):
             command += ['-e', mount]
 
     try:
@@ -164,8 +174,10 @@ def main():
         with open(CONF_FILE) as config_file:
             config = json.load(config_file)
 
-    deleted_files = get_deleted_files(config.get('exclude_mounts', []))
-    filter_restarts = config.get('filter_services', {})
+    deleted_files = get_deleted_files(
+        config.get('exclude_mounts', []),
+        config.get('exclude_filesystems', []))
+    filter_restarts = config.get('filter_services', {}) if not args.printall else {}
 
     if not args.printall and os.path.isfile(AUTO_RESTARTS_FILE):
         with open(AUTO_RESTARTS_FILE, 'r') as auto_restarts_file:
