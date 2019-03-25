@@ -141,7 +141,7 @@ def service_to_pids(service):
         try:
             pids = subprocess.check_output(
                 ['/bin/pidof', service], universal_newlines=True).split()
-            return pids
+            return [ int(x) for x in pids ]
         except subprocess.CalledProcessError:
             logger.warning("unable to determine pid for: %s", service)
             return pids

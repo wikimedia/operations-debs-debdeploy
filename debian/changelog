@@ -1,3 +1,11 @@
+debdeploy (0.0.99.10-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  [ Moritz Muehlenhoff ]
+  * Fix filtering of auto-restarted/ignored services which are running
+    a legacy init script
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Mon, 25 Mar 2019 13:39:30 +0100
+
 debdeploy (0.0.99.9-1+deb9u1) stretch-wikimedia; urgency=medium
 
   [ John Bond ]
