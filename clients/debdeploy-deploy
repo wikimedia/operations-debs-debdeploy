@@ -34,6 +34,11 @@ def parse_args(argv):
     p.add_argument('--updatespec', action='store', nargs='+', required=True,
                    help=('The identifier for the update, an underscore-separated string with: '
                          ' distro ID, distro release, fixed version'))
+    p.add_argument('--transition', action='store', nargs='+',
+                   help=('By default only existing binary packages are upgraded, this option allows to'
+                         'specify that a package gets upgraded to a different binary package name. Passed'
+                         ' as underscore-separated string with: '
+                         ' current binary package name, new binary package name, keep|remove'))
     p.add_argument('--downgrade', action='store_true', help='Allow downgrading package versions',
                    default=False)
 
@@ -42,6 +47,10 @@ def parse_args(argv):
     for spec in args.updatespec:
         if spec.count('_') != 2:
             p.error('Malformed update spec: ' + spec)
+
+    for spec in args.transition:
+        if spec.count('_') != 2:
+            p.error('Malformed transition spec: ' + spec)
 
     return args
 
@@ -194,6 +203,34 @@ def install_pkgs(binary_packages, version_num, downgrade=False):
     return update
 
 
+def remove_packages(packages, purge=False):
+    """Removes a list of packages
+
+    packages: A list of Debian binary package names to remove (list of strings)
+    purge: If enabled, packages are removed with the --purge option of apt-get, which
+           also removes conffiles
+
+    Returns a tuple of the apt exit code and the output of the installation process
+    """
+
+    cmd = ['/usr/bin/apt-get']
+    if purge:
+        cmd.append('--purge')
+    cmd.append('remove')
+    cmd.append('-y')
+    cmd.extend(packages)
+
+    logger.debug('apt invocation: %s', cmd)
+
+    try:
+        removal = (0, subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                             universal_newlines=True))
+    except subprocess.CalledProcessError as e:
+        removal = (e.returncode, e.output)
+
+    return removal
+
+
 def result(success, status, updated_packages):
     '''
     Generates a JSON data set to return to Cumin.
@@ -226,6 +263,15 @@ def main():
         distro, version = spec.rsplit('_', 1)
         versions[distro] = version
 
+    transitions = {}
+    cleanup_packages = []
+    if args.transition:
+        for spec in args.transition:
+            old_pkgname, new_pkgname, retain = spec.split('_')
+            transitions[old_pkgname] = new_pkgname
+            if retain == 'remove':
+                cleanup_packages.append(old_pkgname)
+
     installed_distro = get_os_version()
     if installed_distro == 'invalid':
         return result(False, 'INVALID_DISTRO', {})
@@ -247,8 +293,13 @@ def main():
         except subprocess.CalledProcessError as e:
             logger.info('apt-get update failed: %s', e.returncode)
 
+    packages_to_upgrade = [transitions.get(pkg, pkg) for pkg in installed_binary_packages]
+
+    if cleanup_packages:
+        remove_packages(cleanup_packages)
+
     old = list_pkgs()
-    apt_output = install_pkgs(installed_binary_packages, versions.get(installed_distro, None),
+    apt_output = install_pkgs(packages_to_upgrade, versions.get(installed_distro, None),
                               downgrade=args.downgrade)
     new = list_pkgs()
 
