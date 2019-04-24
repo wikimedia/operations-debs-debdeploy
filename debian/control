@@ -13,6 +13,6 @@ Description: Debdeploy central package management (client)
 
 Package: debdeploy-server
 Architecture: all
-Depends: lsof, python3-debian, cumin, ${misc:Depends}
+Depends: lsof, python3-debian, python3-yaml, cumin, ${misc:Depends}
 Description: Debdeploy central package management (server)
  This is the server package of Debdeploy.
