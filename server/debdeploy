@@ -352,7 +352,10 @@ def main():
 
     elif opt.command == "query_restart":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
-        detect_restarts(update.libraries, opt.serverlist, opt.printall)
+        if update.update_type != 'library':
+            print("%s isn't a library" % update.source)
+        else:
+            detect_restarts(update.libraries, opt.serverlist, opt.printall)
 
     elif opt.command == "query_deps":
         detect_rev_deps(opt.packages, opt.serverlist)

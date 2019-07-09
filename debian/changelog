@@ -1,3 +1,9 @@
+debdeploy (0.0.99.10-2+deb9u1) stretch-wikimedia; urgency=medium
+
+  * Fix traceback when running query_restart on a non-library
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Tue, 09 Jul 2019 10:28:02 +0200
+
 debdeploy (0.0.99.10-1+deb9u1) stretch-wikimedia; urgency=medium
 
   [ Moritz Muehlenhoff ]
