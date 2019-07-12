@@ -69,7 +69,7 @@ def run_cumin(cmd, alias):
             worker.commands = [cmd]
 
             worker.handler = 'sync'
-            worker.success_threshold = 0.1
+            worker.success_threshold = 0.9
             exit_code = worker.execute()
 
             return worker
