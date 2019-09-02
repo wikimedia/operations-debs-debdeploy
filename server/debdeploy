@@ -331,12 +331,26 @@ def main():
                                 help="A YAML file containing the update specification (which source package to \
                                 update and the respective fixed versions", required=True)
 
+    parser_deploy_restart = subp.add_parser('deploy_restartcheck', help='Deploy a library update and query necesssary service restarts after library update')
+    parser_deploy_restart.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
+                                       help="The group of servers for which necessary service restarts should be detected",
+                                       required=True)
+    parser_deploy_restart.add_argument("--printall", action="store_true",
+                                       help="If some services are automatically restarted in an environment, these \
+                                       restarts can be automatically filtered by the Debdeploy client. This is \
+                                       enabled by default. In some cases (e.g. to verify whether the automatic \
+                                       restart works fine) it may be useful to still display the full list of \
+                                       pending restarts. This is option is enabled, no filtering takes place")
+    parser_deploy_restart.add_argument("-u", "--update", action="store", type=str, dest="updatefile",
+                                       help="A YAML file containing the update specification (which source package to \
+                                       update and the respective fixed versions", required=True)
+
     parser_version = subp.add_parser('query_version', help='Query the installed versions of packages')
     parser_version.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
                                 help="The group of servers for which installed package versions should be queried",
                                 required=True)
     parser_version.add_argument('--packages', action='store', nargs='+',
-                             help="Packages to query installed versions", required=True)
+                                help="Packages to query installed versions", required=True)
 
     opt = p.parse_args()
 
@@ -355,6 +369,15 @@ def main():
         if update.update_type != 'library':
             print("%s isn't a library" % update.source)
         else:
+            detect_restarts(update.libraries, opt.serverlist, opt.printall)
+
+    elif opt.command == "deploy_restartcheck":
+        update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
+        if update.update_type != 'library':
+            print("%s isn't a library" % update.source)
+        else:
+            deploy_update(update.source, update.update_type, opt.updatefile, opt.serverlist,
+                          conf.supported_distros, update.fixes, update.downgrade)
             detect_restarts(update.libraries, opt.serverlist, opt.printall)
 
     elif opt.command == "query_deps":
