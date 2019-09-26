@@ -45,7 +45,7 @@ while updatetype not in ['tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'l
         print("Aborting")
         sys.exit(1)
 
-for i in conf.supported_distros:
+for i in sorted(conf.supported_distros):
     fixes[i] = input("Please enter the version which fixed in in " + i + ". Leave blank if no fix is available/required for a given distro.\n>").strip()
 
 at_least_one_fixed_version = False
