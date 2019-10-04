@@ -299,28 +299,23 @@ def main():
     p.add_argument("--verbose", action="store_true", dest="verbose",
                    help="Enable verbose output, e.g. show full apt output in status-deploy and \
                    status-rollback")
+    p.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
+                   help="The group of servers for which reverse dependencies should be queried",
+                   required=True)
 
     subp = p.add_subparsers(title='Command', description='Valid commands', dest='command')
     subp.required = True
+
     parser_deps = subp.add_parser('query_deps', help='Query reverse dependencies of a given package')
     parser_deps.add_argument('--packages', action='store', nargs='+',
                              help="Packages to query reverse dependencies", required=True)
-    parser_deps.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
-                             help="The group of servers for which reverse dependencies should be queried",
-                             required=True)
 
     parser_deploy = subp.add_parser('deploy', help='Install a software update')
-    parser_deploy.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
-                               help="The group of servers on which the update should be applied",
-                               required=True)
     parser_deploy.add_argument("-u", "--update", action="store", type=str, dest="updatefile",
                                help="A YAML file containing the update specification (which source package to \
                                update and the respective fixed versions", required=True)
 
     parser_restart = subp.add_parser('query_restart', help='Query necesssary service restarts after library update')
-    parser_restart.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
-                                help="The group of servers for which necessary service restarts should be detected",
-                                required=True)
     parser_restart.add_argument("--printall", action="store_true",
                                 help="If some services are automatically restarted in an environment, these \
                                 restarts can be automatically filtered by the Debdeploy client. This is \
@@ -332,9 +327,6 @@ def main():
                                 update and the respective fixed versions", required=True)
 
     parser_deploy_restart = subp.add_parser('deploy_restartcheck', help='Deploy a library update and query necesssary service restarts after library update')
-    parser_deploy_restart.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
-                                       help="The group of servers for which necessary service restarts should be detected",
-                                       required=True)
     parser_deploy_restart.add_argument("--printall", action="store_true",
                                        help="If some services are automatically restarted in an environment, these \
                                        restarts can be automatically filtered by the Debdeploy client. This is \
@@ -346,9 +338,6 @@ def main():
                                        update and the respective fixed versions", required=True)
 
     parser_version = subp.add_parser('query_version', help='Query the installed versions of packages')
-    parser_version.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
-                                help="The group of servers for which installed package versions should be queried",
-                                required=True)
     parser_version.add_argument('--packages', action='store', nargs='+',
                                 help="Packages to query installed versions", required=True)
 
