@@ -11,9 +11,8 @@ import textwrap
 
 from collections import defaultdict
 
-import cumin
-
-from cumin import query, transport, transports
+from cumin import query, transport, transports, Config, NodeSet
+from cumin.backends import InvalidQueryError
 
 from debdeploy_conf import *
 from debdeploy_updatespec import *
@@ -23,7 +22,7 @@ if os.geteuid() != 0:
     print("debdeploy needs to be run as root")
     sys.exit(1)
 
-cumin_config = cumin.Config()
+cumin_config = Config()
 conf = DebDeployConfig("/etc/debdeploy.conf")
 
 logging_level = logging.INFO
@@ -47,12 +46,12 @@ def show_unreachable_hosts(worker):
             print(host)
 
 
-def run_cumin(cmd, alias):
+def run_cumin(cmd, cumin_hosts):
     '''
     Run Cumin and discard the output shown by the transport
 
-    cmd   : The Command to be executed
-    alias : A Cumin alias for a group of servers
+    cmd         : The Command to be executed
+    cumin_hosts : A Cumin NodeSet of hosts to act on (Cumin.NodeSet)
     '''
 
     with open(os.devnull, 'w') as discard_output:
@@ -63,34 +62,31 @@ def run_cumin(cmd, alias):
             sys.stdout = discard_output
             sys.stderr = discard_output
 
-            hosts = query.Query(cumin_config).execute('A:' + alias)
-            target = transports.Target(hosts, batch_size=100)
+            target = transports.Target(cumin_hosts, batch_size=100)
             worker = transport.Transport.new(cumin_config, target)
             worker.commands = [cmd]
 
             worker.handler = 'sync'
             worker.success_threshold = 0.9
-            exit_code = worker.execute()
+            worker.execute()
 
             return worker
 
-        except cumin.backends.InvalidQueryError as e:
-            print("Invalid query:")
-            print(e)
-            sys.exit(1)
+        except transports.WorkerError as error:
+            raise SystemExit('cumin failed to execute: {}'.format(error))
         finally:
             sys.stdout = oldstdout
             sys.stderr = oldstderr
 
 
-def deploy_update(source, update_type, update_file, servergroup, supported_distros, fixes, downgrade=False):
+def deploy_update(source, update_type, update_file, cumin_hosts, supported_distros, fixes, downgrade=False):
     '''
     Initiate a deployment.
 
     source      : Name of the source package (string)
     update_type : Various types of packages have different outcome, see doc/readme.txt (string)
     update_file : Filename of update specification (string)
-    servergroup : The name of the server group (string)
+    cumin_hosts : A Cumin NodeSet of hosts to act one (Cumin.NodeSet)
     '''
 
     update_desc = {}
@@ -111,7 +107,7 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
     if downgrade:
         cmd += " --downgrade"
 
-    worker = run_cumin(cmd, servergroup)
+    worker = run_cumin(cmd, cumin_hosts)
 
     status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
@@ -154,13 +150,13 @@ def deploy_update(source, update_type, update_file, servergroup, supported_distr
     show_unreachable_hosts(worker)
 
 
-def detect_restarts(libnames, servergroup, printall):
+def detect_restarts(libnames, cumin_hosts, printall):
     '''
     Query for necessary restarts after a library or interpreter upgrade
 
     libnames    : A list of library base names, e.g. libssl for
                   /usr/lib/x86_64-linux-gnu/libssl.so.1.0.0 (list of strings)
-    servergroup : The name of the server group for which process restarts should be queried (string)
+    cumin_hosts : A Cumin NodeSet of hosts to act one (Cumin.NodeSet)
     printall    : If some services are automatically restarted in an environment, these restarts
                   can be automatically filtered by the Debdeploy client. This is enabled by default.
                   In some cases (e.g. to verify whether the automatic restart works fine) it may
@@ -173,9 +169,9 @@ def detect_restarts(libnames, servergroup, printall):
     if printall:
         cmd += ' --printall'
 
-    worker = run_cumin(cmd, servergroup)
+    worker = run_cumin(cmd, cumin_hosts)
 
-    restarts_per_lib = defaultdict(lambda: defaultdict(cumin.NodeSet))
+    restarts_per_lib = defaultdict(lambda: defaultdict(NodeSet))
     for nodeset, output in worker.get_results():
         msg = output.message().decode('utf-8')
 
@@ -205,18 +201,18 @@ def detect_restarts(libnames, servergroup, printall):
     show_unreachable_hosts(worker)
 
 
-def detect_rev_deps(pkgnames, servergroup):
+def detect_rev_deps(pkgnames, cumin_hosts):
     '''
     Query for reverse dependencies of packages(s)
 
     pkgnames    : A list of package names for which reverse dependencies are displayed,
                   e.g. libssl1.1 (list of strings)
-    servergroup : The name of the server group for which process reverse dependencies should be queried (string)
+    cumin_hosts : A Cumin NodeSet of hosts to act one (Cumin.NodeSet)
     '''
 
     cmd = '/usr/bin/debdeploy-revdeps ' + ' '.join(pkgnames)
 
-    worker = run_cumin(cmd, servergroup)
+    worker = run_cumin(cmd, cumin_hosts)
 
     status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
@@ -253,17 +249,17 @@ def detect_rev_deps(pkgnames, servergroup):
     show_unreachable_hosts(worker)
 
 
-def detect_package_versions(pkgnames, servergroup):
+def detect_package_versions(pkgnames, cumin_hosts):
     '''
     Query for installed version(s) of package(s)
 
     pkgnames    : A list of package names for which the installed version is queried e.g. libc6 (list of strings)
-    servergroup : The name of the server group for which process restarts should be queried (string)
+    cumin_hosts : A Cumin NodeSet of hosts to act one (Cumin.NodeSet)
     '''
 
     cmd = '/usr/bin/debdeploy-pkgversion ' + ' '.join(pkgnames)
 
-    worker = run_cumin(cmd, servergroup)
+    worker = run_cumin(cmd, cumin_hosts)
 
     status_print = textwrap.TextWrapper(initial_indent='  ')
     for nodeset, output in worker.get_results():
@@ -294,16 +290,18 @@ def detect_package_versions(pkgnames, servergroup):
 
 
 def main():
-    p = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()
 
-    p.add_argument("--verbose", action="store_true", dest="verbose",
-                   help="Enable verbose output, e.g. show full apt output in status-deploy and \
-                   status-rollback")
-    p.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
-                   help="The group of servers for which reverse dependencies should be queried",
-                   required=True)
+    parser.add_argument("--verbose", action="store_true", dest="verbose",
+                        help="Enable verbose output, e.g. show full apt output in status-deploy and \
+                        status-rollback")
+    query_group = parser.add_mutually_exclusive_group(required=True)
+    query_group.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
+                             help="A Cumin alias which selects the servers to act on")
+    query_group.add_argument("-Q", "--query",
+                             help="An arbitrary Cumin NodeSet query which selects the servers to act in")
 
-    subp = p.add_subparsers(title='Command', description='Valid commands', dest='command')
+    subp = parser.add_subparsers(title='Command', description='Valid commands', dest='command')
     subp.required = True
 
     parser_deps = subp.add_parser('query_deps', help='Query reverse dependencies of a given package')
@@ -341,16 +339,23 @@ def main():
     parser_version.add_argument('--packages', action='store', nargs='+',
                                 help="Packages to query installed versions", required=True)
 
-    opt = p.parse_args()
+    opt = parser.parse_args()
 
     if opt.serverlist:
         if opt.serverlist not in cumin_config['aliases']:
             print("Invalid host group alias")
             sys.exit(1)
+        cumin_query = 'A:{}'.format(opt.serverlist)
+    elif opt.query:
+        cumin_query = opt.query
+    try:
+        cumin_hosts = query.Query(cumin_config).execute(cumin_query)
+    except InvalidQueryError as error:
+        raise SystemExit('Invalid cumin query: {}\n{}'.format(cumin_query, error))
 
     if opt.command == "deploy":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
-        deploy_update(update.source, update.update_type, opt.updatefile, opt.serverlist,
+        deploy_update(update.source, update.update_type, opt.updatefile, cumin_hosts,
                       conf.supported_distros, update.fixes, update.downgrade)
 
     elif opt.command == "query_restart":
@@ -358,22 +363,22 @@ def main():
         if update.update_type != 'library':
             print("%s isn't a library" % update.source)
         else:
-            detect_restarts(update.libraries, opt.serverlist, opt.printall)
+            detect_restarts(update.libraries, cumin_hosts, opt.printall)
 
     elif opt.command == "deploy_restartcheck":
         update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
         if update.update_type != 'library':
             print("%s isn't a library" % update.source)
         else:
-            deploy_update(update.source, update.update_type, opt.updatefile, opt.serverlist,
+            deploy_update(update.source, update.update_type, opt.updatefile, cumin_hosts,
                           conf.supported_distros, update.fixes, update.downgrade)
-            detect_restarts(update.libraries, opt.serverlist, opt.printall)
+            detect_restarts(update.libraries, cumin_hosts, opt.printall)
 
     elif opt.command == "query_deps":
-        detect_rev_deps(opt.packages, opt.serverlist)
+        detect_rev_deps(opt.packages, cumin_hosts)
 
     elif opt.command == "query_version":
-        detect_package_versions(opt.packages, opt.serverlist)
+        detect_package_versions(opt.packages, cumin_hosts)
 
 
 if __name__ == '__main__':
