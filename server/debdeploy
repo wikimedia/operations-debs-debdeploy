@@ -5,33 +5,38 @@ import argparse
 import json
 import logging
 import os
-import pydoc
 import sys
 import textwrap
 
 from collections import defaultdict
 
-from cumin import query, transport, transports, Config, NodeSet
+from cumin import Config, NodeSet
 from cumin.backends import InvalidQueryError
-
-from debdeploy_conf import *
-from debdeploy_updatespec import *
+from cumin.query import Query
+from cumin.transport import Transport
+from cumin.transports import Target, WorkerError
+from debdeploy_conf import DebDeployConfig
+from debdeploy_updatespec import DebDeployUpdateSpec
 
 
 if os.geteuid() != 0:
     print("debdeploy needs to be run as root")
     sys.exit(1)
 
-cumin_config = Config()
-conf = DebDeployConfig("/etc/debdeploy.conf")
+CUMIN_CONFIG = Config()
+CONF = DebDeployConfig("/etc/debdeploy.conf")
 
-logging_level = logging.INFO
-if conf.debug:
-    logging_level = logging.DEBUG
 
-logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log',
-                    format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s',
-                    level=logging_level)
+def configure_logging(debug):
+    '''
+    Configure the logger instance
+
+    debug (bool): If true set logging level to debug
+    '''
+    logging_level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(filename='/var/log/debdeploy/debdeploy.log',
+                        format='%(levelname)s: %(asctime)s : %(funcName)s : %(message)s',
+                        level=logging_level)
 
 
 def show_unreachable_hosts(worker):
@@ -62,8 +67,8 @@ def run_cumin(cmd, cumin_hosts):
             sys.stdout = discard_output
             sys.stderr = discard_output
 
-            target = transports.Target(cumin_hosts, batch_size=100)
-            worker = transport.Transport.new(cumin_config, target)
+            target = Target(cumin_hosts, batch_size=100)
+            worker = Transport.new(CUMIN_CONFIG, target)
             worker.commands = [cmd]
 
             worker.handler = 'sync'
@@ -72,7 +77,7 @@ def run_cumin(cmd, cumin_hosts):
 
             return worker
 
-        except transports.WorkerError as error:
+        except WorkerError as error:
             raise SystemExit('cumin failed to execute: {}'.format(error))
         finally:
             sys.stdout = oldstdout
@@ -102,7 +107,8 @@ def deploy_update(source, update_type, update_file, cumin_hosts, supported_distr
     cmd = '/usr/bin/debdeploy-deploy --source ' + source + ' --updatespec '
     for distro in fixes:
         if fixes[distro]:
-            cmd += str(supported_distros[distro][0][0]) + "_" + str(supported_distros[distro][0][1]) + "_" + str(fixes[distro]) + " "
+            cmd += '{}_{}_{} '.format(
+                supported_distros[distro][0][0], supported_distros[distro][0][1], fixes[distro])
 
     if downgrade:
         cmd += " --downgrade"
@@ -138,13 +144,13 @@ def deploy_update(source, update_type, update_file, cumin_hosts, supported_distr
                     print("Unspecified error:")
                 print(result['status'])
 
-        except ValueError as e:
+        except ValueError as error:
             print("Could not decode JSON response for")
             print(nodeset)
-            print(e)
+            print(error)
 
-        except KeyError as e:
-            print("Failed to read expected value {}:".format(e))
+        except KeyError as error:
+            print("Failed to read expected value {}:".format(error))
             print(nodeset)
 
     show_unreachable_hosts(worker)
@@ -187,16 +193,17 @@ def detect_restarts(libnames, cumin_hosts, printall):
                 elif result['status'] == 'NO_RESTARTS_NEEDED':
                     print("No service needs a restart" + " (" + str(len(nodeset)) + " hosts)\n")
 
-        except ValueError as e:
+        except ValueError as error:
             print("Could not decode JSON response for")
             print(nodeset)
-            print(e)
+            print(error)
 
     for lib in restarts_per_lib:
         print("Restarts for {}:".format(lib))
         for program in restarts_per_lib[lib]:
             print("  " + program)
-            print("      " + str(restarts_per_lib[lib][program]) + " (" + str(len(restarts_per_lib[lib][program])) + " hosts)")
+            print("      {} ({}) hosts".format(
+                restarts_per_lib[lib][program], len(restarts_per_lib[lib][program])))
 
     show_unreachable_hosts(worker)
 
@@ -237,13 +244,13 @@ def detect_rev_deps(pkgnames, cumin_hosts):
                     print(error_codes[result['status']])
                     print(status_print.fill(str(nodeset)))
 
-        except ValueError as e:
+        except ValueError as error:
             print("Could not decode JSON response for")
             print(nodeset)
-            print(e)
+            print(error)
 
-        except KeyError as e:
-            print("Failed to read expected value {}:".format(e))
+        except KeyError as error:
+            print("Failed to read expected value {}:".format(error))
             print(nodeset)
 
     show_unreachable_hosts(worker)
@@ -277,13 +284,13 @@ def detect_package_versions(pkgnames, cumin_hosts):
                         print(nodeset)
                         print(status_print.fill("Package(s) not installed"))
 
-        except ValueError as e:
+        except ValueError as error:
             print("Could not decode JSON response for")
             print(nodeset)
-            print(e)
+            print(error)
 
-        except KeyError as e:
-            print("Failed to read expected value {}:".format(e))
+        except KeyError as error:
+            print("Failed to read expected value {}:".format(error))
             print(nodeset)
 
     show_unreachable_hosts(worker)
@@ -340,38 +347,39 @@ def main():
                                 help="Packages to query installed versions", required=True)
 
     opt = parser.parse_args()
+    configure_logging(CONF.debug)
 
     if opt.serverlist:
-        if opt.serverlist not in cumin_config['aliases']:
+        if opt.serverlist not in CUMIN_CONFIG['aliases']:
             print("Invalid host group alias")
             sys.exit(1)
         cumin_query = 'A:{}'.format(opt.serverlist)
     elif opt.query:
         cumin_query = opt.query
     try:
-        cumin_hosts = query.Query(cumin_config).execute(cumin_query)
+        cumin_hosts = Query(CUMIN_CONFIG).execute(cumin_query)
     except InvalidQueryError as error:
         raise SystemExit('Invalid cumin query: {}\n{}'.format(cumin_query, error))
 
     if opt.command == "deploy":
-        update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
+        update = DebDeployUpdateSpec(opt.updatefile, CONF.supported_distros)
         deploy_update(update.source, update.update_type, opt.updatefile, cumin_hosts,
-                      conf.supported_distros, update.fixes, update.downgrade)
+                      CONF.supported_distros, update.fixes, update.downgrade)
 
     elif opt.command == "query_restart":
-        update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
+        update = DebDeployUpdateSpec(opt.updatefile, CONF.supported_distros)
         if update.update_type != 'library':
             print("%s isn't a library" % update.source)
         else:
             detect_restarts(update.libraries, cumin_hosts, opt.printall)
 
     elif opt.command == "deploy_restartcheck":
-        update = DebDeployUpdateSpec(opt.updatefile, conf.supported_distros)
+        update = DebDeployUpdateSpec(opt.updatefile, CONF.supported_distros)
         if update.update_type != 'library':
             print("%s isn't a library" % update.source)
         else:
             deploy_update(update.source, update.update_type, opt.updatefile, cumin_hosts,
-                          conf.supported_distros, update.fixes, update.downgrade)
+                          CONF.supported_distros, update.fixes, update.downgrade)
             detect_restarts(update.libraries, cumin_hosts, opt.printall)
 
     elif opt.command == "query_deps":
