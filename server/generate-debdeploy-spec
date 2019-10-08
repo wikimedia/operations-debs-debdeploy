@@ -14,7 +14,7 @@ import yaml
 from debdeploy_conf import DebDeployConfig
 
 __title__ = "Generate debdeploy specs"
-UPDATE_TYPES = ('tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'library')
+UPDATE_TYPES = ['tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'library']
 UPDATE_TYPE_HELP = """
 tool           -> The updated packages is an enduser tool, can be
                   rolled-out immediately.
@@ -180,8 +180,8 @@ def main():
         updatetype_msg, allow_exit=False, valid_choices=UPDATE_TYPES)
 
     for distro in conf.supported_distros:
-        msg = ('Please enter the version of {source} fixed in {distro}.'
-               '. Leave blank if no fix is available/required for a {distro}.\n>'
+        msg = ('Please enter the version of {source} fixed in {distro}. '
+               'Leave blank if no fix is available/required for a {distro}.\n>'
                ).format(source=spec['source'], distro=distro)
         spec['fixes'][distro] = ask_question(msg,
                                              allow_exit=False,
