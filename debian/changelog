@@ -1,8 +1,21 @@
-debdeploy (0.0.99.10-2+deb9u1) stretch-wikimedia; urgency=medium
+debdeploy (0.0.99.11-1+deb9u1) stretch-wikimedia; urgency=medium
 
+  [ Moritz Muehlenhoff ]
   * Fix traceback when running query_restart on a non-library
+  * Add a minimal setup.py and switch to dh-python
+  * Sort distros in generate-debdeploy-spec
+  * Add a new command to combine a deployment with a library restart
+    check
+  * Fix Cumin success_threshold in debdeploy
+  * Support upgrades which introduce changes to binary package names
+    (client side, server side pending)
 
- -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Tue, 09 Jul 2019 10:28:02 +0200
+  [ John Bond ]
+  * Refactor generate-debdeploy-spec and use PyYAML
+  * Add support for raw Cumin query strings
+  * Change --servers option to a global flag
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Tue, 08 Oct 2019 14:52:02 +0200
 
 debdeploy (0.0.99.10-1+deb9u1) stretch-wikimedia; urgency=medium
 
