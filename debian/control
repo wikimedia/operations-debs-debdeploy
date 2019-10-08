@@ -2,17 +2,17 @@ Source: debdeploy
 Section: admin
 Priority: optional
 Maintainer: Moritz Muehlenhoff <moritz@wikimedia.org>
-Build-Depends: debhelper
+Build-Depends: debhelper, dh-python, python3-setuptools, python3-all, python3-debian, python3-psutil, python3-yaml
 Standards-Version: 3.9.6
 
 Package: debdeploy-client
 Architecture: all
-Depends: lsof, python3-debian, python3-psutil, ${misc:Depends}
+Depends: lsof, ${misc:Depends}, ${python3:Depends}
 Description: Debdeploy central package management (client)
  This is the client package of Debdeploy.
 
 Package: debdeploy-server
 Architecture: all
-Depends: lsof, python3-debian, python3-yaml, cumin, ${misc:Depends}
+Depends: cumin, ${misc:Depends}, ${python3:Depends}
 Description: Debdeploy central package management (server)
  This is the server package of Debdeploy.
