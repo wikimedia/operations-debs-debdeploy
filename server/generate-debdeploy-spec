@@ -14,7 +14,7 @@ import yaml
 from debdeploy_conf import DebDeployConfig
 
 __title__ = "Generate debdeploy specs"
-UPDATE_TYPES = ['tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'library']
+UPDATE_TYPES = ('tool', 'daemon-direct', 'daemon-disrupt', 'reboot', 'library')
 UPDATE_TYPE_HELP = """
 tool           -> The updated packages is an enduser tool, can be
                   rolled-out immediately.
@@ -87,8 +87,8 @@ def ask_question(message, allow_exit=True, valid_choices=None, exit_options=('',
                 valid, error_message = valid_choices(answer)
                 if not valid:
                     print(error_message)
-        elif not isinstance(valid_choices, list):
-            raise ValueError('valid_choices must be a list, str or callable. not {}'.format(
+        elif not isinstance(valid_choices, list) and not isinstance(valid_choices, tuple):
+            raise ValueError('valid_choices must be a list, tuple, str or callable. not {}'.format(
                 type(valid_choices)))
         else:
             while answer not in valid_choices:
