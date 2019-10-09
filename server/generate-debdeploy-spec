@@ -123,7 +123,7 @@ def validate_pkg_version(pkg_version):
         "(?P<upstream_version>[A-Za-z0-9.+:~-]+?)"
         "(-(?P<debian_revision>[A-Za-z0-9+.~]+))?$")
     match = re_valid_version.match(pkg_version)
-    if match is None:
+    if pkg_version and match is None:
         return (False, 'Invalid version {pkg_version}, please correct:'.format(
             pkg_version=pkg_version))
     return (True, '')
@@ -181,7 +181,7 @@ def main():
 
     for distro in conf.supported_distros:
         msg = ('Please enter the version of {source} fixed in {distro}. '
-               'Leave blank if no fix is available/required for a {distro}.\n>'
+               'Leave blank if no fix is available/required for {distro}.\n>'
                ).format(source=spec['source'], distro=distro)
         spec['fixes'][distro] = ask_question(msg,
                                              allow_exit=False,
