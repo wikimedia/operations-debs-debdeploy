@@ -176,7 +176,7 @@ def main():
         comment_msg, allow_exit=False)
 
     print(UPDATE_TYPE_HELP)
-    spec['updatetype'] = args.update_type if args.update_type else ask_question(
+    spec['update_type'] = args.update_type if args.update_type else ask_question(
         updatetype_msg, allow_exit=False, valid_choices=UPDATE_TYPES)
 
     for distro in conf.supported_distros:
@@ -191,7 +191,7 @@ def main():
         print("At least one fixed version needs to be configured, aborting")
         raise SystemExit(1)
 
-    if spec['updatetype'] == 'library':
+    if spec['update_type'] == 'library':
         print(LIBRARY_HELP)
         libinput = ''
         if conf.library_hints.get(spec['source'], None):
