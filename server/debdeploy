@@ -296,17 +296,20 @@ def detect_package_versions(pkgnames, cumin_hosts):
     show_unreachable_hosts(worker)
 
 
+def add_server_arg(arg):
+    query_group = arg.add_mutually_exclusive_group(required=True)
+    query_group.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
+                             help="A Cumin alias which selects the servers to act on")
+    query_group.add_argument("-Q", "--query",
+                             help="An arbitrary Cumin NodeSet query which selects the servers to act in")
+
+
 def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--verbose", action="store_true", dest="verbose",
                         help="Enable verbose output, e.g. show full apt output in status-deploy and \
                         status-rollback")
-    query_group = parser.add_mutually_exclusive_group(required=True)
-    query_group.add_argument("-s", "--servers", action="store", type=str, dest="serverlist",
-                             help="A Cumin alias which selects the servers to act on")
-    query_group.add_argument("-Q", "--query",
-                             help="An arbitrary Cumin NodeSet query which selects the servers to act in")
 
     subp = parser.add_subparsers(title='Command', description='Valid commands', dest='command')
     subp.required = True
@@ -314,11 +317,13 @@ def main():
     parser_deps = subp.add_parser('query_deps', help='Query reverse dependencies of a given package')
     parser_deps.add_argument('--packages', action='store', nargs='+',
                              help="Packages to query reverse dependencies", required=True)
+    add_server_arg(parser_deps)
 
     parser_deploy = subp.add_parser('deploy', help='Install a software update')
     parser_deploy.add_argument("-u", "--update", action="store", type=str, dest="updatefile",
                                help="A YAML file containing the update specification (which source package to \
                                update and the respective fixed versions", required=True)
+    add_server_arg(parser_deploy)
 
     parser_restart = subp.add_parser('query_restart', help='Query necesssary service restarts after library update')
     parser_restart.add_argument("--printall", action="store_true",
@@ -330,6 +335,7 @@ def main():
     parser_restart.add_argument("-u", "--update", action="store", type=str, dest="updatefile",
                                 help="A YAML file containing the update specification (which source package to \
                                 update and the respective fixed versions", required=True)
+    add_server_arg(parser_restart)
 
     parser_deploy_restart = subp.add_parser('deploy_restartcheck', help='Deploy a library update and query necesssary service restarts after library update')
     parser_deploy_restart.add_argument("--printall", action="store_true",
@@ -341,10 +347,12 @@ def main():
     parser_deploy_restart.add_argument("-u", "--update", action="store", type=str, dest="updatefile",
                                        help="A YAML file containing the update specification (which source package to \
                                        update and the respective fixed versions", required=True)
+    add_server_arg(parser_deploy_restart)
 
     parser_version = subp.add_parser('query_version', help='Query the installed versions of packages')
     parser_version.add_argument('--packages', action='store', nargs='+',
                                 help="Packages to query installed versions", required=True)
+    add_server_arg(parser_version)
 
     opt = parser.parse_args()
     configure_logging(CONF.debug)
