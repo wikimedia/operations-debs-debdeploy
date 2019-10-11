@@ -48,9 +48,10 @@ def parse_args(argv):
         if spec.count('_') != 2:
             p.error('Malformed update spec: ' + spec)
 
-    for spec in args.transition:
-        if spec.count('_') != 2:
-            p.error('Malformed transition spec: ' + spec)
+    if args.transition:
+        for spec in args.transition:
+            if spec.count('_') != 2:
+                p.error('Malformed transition spec: ' + spec)
 
     return args
 

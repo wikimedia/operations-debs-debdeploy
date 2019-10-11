@@ -13,7 +13,7 @@ debdeploy (0.0.99.11-1+deb9u1) stretch-wikimedia; urgency=medium
   [ John Bond ]
   * Refactor generate-debdeploy-spec and use PyYAML
   * Add support for raw Cumin query strings
-  * Change --servers option to a global flag
+  * Avoid DRY in alias/host query parsing
 
  -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Tue, 08 Oct 2019 14:52:02 +0200
 
