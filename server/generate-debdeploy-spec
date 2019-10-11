@@ -179,7 +179,7 @@ def main():
     spec['update_type'] = args.update_type if args.update_type else ask_question(
         updatetype_msg, allow_exit=False, valid_choices=UPDATE_TYPES)
 
-    for distro in conf.supported_distros:
+    for i in sorted(conf.supported_distros):
         msg = ('Please enter the version of {source} fixed in {distro}. '
                'Leave blank if no fix is available/required for {distro}.\n>'
                ).format(source=spec['source'], distro=distro)
