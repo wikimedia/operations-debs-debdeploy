@@ -7,12 +7,12 @@ Standards-Version: 3.9.6
 
 Package: debdeploy-client
 Architecture: all
-Depends: lsof, ${misc:Depends}, ${python3:Depends}
+Depends: lsof, ${misc:Depends}, ${python3:Depends}, python3-debian, python3-psutil
 Description: Debdeploy central package management (client)
  This is the client package of Debdeploy.
 
 Package: debdeploy-server
 Architecture: all
-Depends: cumin, ${misc:Depends}, ${python3:Depends}
+Depends: cumin, ${misc:Depends}, ${python3:Depends}, python3-debian, python3-yaml
 Description: Debdeploy central package management (server)
  This is the server package of Debdeploy.
