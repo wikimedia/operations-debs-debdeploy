@@ -1,3 +1,11 @@
+debdeploy (0.0.99.12-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  * Reinstate explicit dependencies for client and server packages
+  * Print spec file name in generate-debdeploy-spec
+  * Sort distros in generate-debdeploy-spec
+
+ -- Moritz Muehlenhoff <mmuhlenhoff@wikimedia.org>  Fri, 18 Oct 2019 10:41:38 +0200
+
 debdeploy (0.0.99.11-1+deb9u1) stretch-wikimedia; urgency=medium
 
   [ Moritz Muehlenhoff ]
