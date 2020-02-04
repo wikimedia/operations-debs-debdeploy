@@ -30,7 +30,7 @@ class DebDeployUpdateSpec(object):
 
         try:
             with open(updatespec, "r") as stream:
-                updatefile = yaml.load(stream)
+                updatefile = yaml.safe_load(stream)
 
         except IOError:
             print("Error: Could not open {}".format(updatespec))
