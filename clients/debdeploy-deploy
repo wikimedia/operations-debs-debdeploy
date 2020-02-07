@@ -195,8 +195,13 @@ def install_pkgs(binary_packages, version_num, downgrade=False):
 
     logger.debug('apt invocation: %s', cmd)
 
+    # Prevent interactive debconf prompts if e.g. a conffile got modified
+    current_env = os.environ.copy()
+    current_env["DEBIAN_FRONTEND"] = "noninteractive"
+
     try:
         update = (0, subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                             env=current_env,
                                              universal_newlines=True))
     except subprocess.CalledProcessError as e:
         update = (e.returncode, e.output)
