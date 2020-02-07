@@ -1,3 +1,11 @@
+debdeploy (0.0.99.13-1+deb9u1) stretch-wikimedia; urgency=medium
+
+  [ Moritz Mühlenhoff ]
+  * Switch to yaml.safe_load to loading update spec files
+  * Export DEBIAN_FRONTEND=noninteractive in the debdeploy client
+
+ -- Moritz Muehlenhoff <jmm@debian.org>  Fri, 07 Feb 2020 17:19:02 +0100
+
 debdeploy (0.0.99.12-1+deb9u1) stretch-wikimedia; urgency=medium
 
   * Reinstate explicit dependencies for client and server packages
