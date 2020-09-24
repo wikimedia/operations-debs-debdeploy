@@ -170,6 +170,10 @@ def detect_restarts(libnames, cumin_hosts, printall):
                   is passed, no filtering takes place (boolean)
     '''
 
+    if not libnames:
+        print("No library base names specified in spec file, skipping restart detection")
+        return
+
     cmd = '/usr/bin/debdeploy-restarts --libname ' + ' '.join(libnames)
 
     if printall:
